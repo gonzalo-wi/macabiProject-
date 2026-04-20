@@ -5,12 +5,14 @@ import (
 
 	"macabi-back/internal/shared/config"
 	"macabi-back/internal/shared/database"
-
-	"github.com/gin-gonic/gin"
+	userpersistence "macabi-back/internal/user/infrastructure/persistence"
 )
 
 func main() {
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
 
 	db := database.NewPostgresConnection(cfg.DSN())
 
@@ -20,12 +22,13 @@ func main() {
 	}
 	defer sqlDB.Close()
 
-	r := gin.Default()
-	r.SetTrustedProxies(nil)
+	if err := userpersistence.RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
+	deps := BuildDependencies(db, cfg)
+
+	r := SetupRouter(deps)
 
 	log.Printf("Server starting on port %s", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
