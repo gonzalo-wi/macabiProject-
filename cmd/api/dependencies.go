@@ -1,6 +1,9 @@
 package main
 
 import (
+	mealusecases "macabi-back/internal/meal/application/usecases"
+	mealhttp "macabi-back/internal/meal/infrastructure/http"
+	mealpersistence "macabi-back/internal/meal/infrastructure/persistence"
 	"macabi-back/internal/shared/config"
 	userports "macabi-back/internal/user/application/ports"
 	userusecases "macabi-back/internal/user/application/usecases"
@@ -12,31 +15,50 @@ import (
 )
 
 type Dependencies struct {
-	AuthHandler *userhttp.AuthHandler
-	UserHandler *userhttp.UserHandler
-	TokenPrv    userports.TokenProvider
+	AuthHandler    *userhttp.AuthHandler
+	UserHandler    *userhttp.UserHandler
+	MealHandler    *mealhttp.MealHandler
+	BookingHandler *mealhttp.BookingHandler
+	TokenPrv       userports.TokenProvider
 }
 
 func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
-	// Infrastructure
+	// User infrastructure
 	userRepo := userpersistence.NewUserRepositoryPG(db)
 	hasher := usersecurity.NewBcryptHasher()
 	jwtProvider := usersecurity.NewJWTProvider(cfg.JWTSecret, cfg.JWTExpiration)
 
-	// Use cases
+	// User use cases
 	registerUC := userusecases.NewRegisterUser(userRepo, hasher)
 	loginUC := userusecases.NewLogin(userRepo, hasher, jwtProvider)
 	getCurrentUserUC := userusecases.NewGetCurrentUser(userRepo)
 	changeRoleUC := userusecases.NewChangeRole(userRepo)
 	listUsersUC := userusecases.NewListUsers(userRepo)
 
-	// Handlers
+	// User handlers
 	authHandler := userhttp.NewAuthHandler(registerUC, loginUC)
 	userHandler := userhttp.NewUserHandler(getCurrentUserUC, changeRoleUC, listUsersUC)
 
+	// Meal infrastructure
+	mealRepo := mealpersistence.NewMealRepositoryPG(db)
+	bookingRepo := mealpersistence.NewBookingRepositoryPG(db)
+
+	// Meal use cases
+	createMealUC := mealusecases.NewCreateMeal(mealRepo)
+	listAvailableMealsUC := mealusecases.NewListAvailableMeals(mealRepo)
+	bookMealUC := mealusecases.NewBookMeal(mealRepo, bookingRepo)
+	cancelBookingUC := mealusecases.NewCancelBooking(bookingRepo, mealRepo)
+	listMyBookingsUC := mealusecases.NewListMyBookings(bookingRepo)
+
+	// Meal handlers
+	mealHandler := mealhttp.NewMealHandler(createMealUC, listAvailableMealsUC)
+	bookingHandler := mealhttp.NewBookingHandler(bookMealUC, cancelBookingUC, listMyBookingsUC)
+
 	return &Dependencies{
-		AuthHandler: authHandler,
-		UserHandler: userHandler,
-		TokenPrv:    jwtProvider,
+		AuthHandler:    authHandler,
+		UserHandler:    userHandler,
+		MealHandler:    mealHandler,
+		BookingHandler: bookingHandler,
+		TokenPrv:       jwtProvider,
 	}
 }

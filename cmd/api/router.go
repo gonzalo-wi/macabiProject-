@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	mealhttp "macabi-back/internal/meal/infrastructure/http"
 	"macabi-back/internal/shared/middleware"
 	userhttp "macabi-back/internal/user/infrastructure/http"
 
@@ -22,6 +23,7 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	})
 
 	userhttp.RegisterRoutes(r, deps.AuthHandler, deps.UserHandler, deps.TokenPrv)
+	mealhttp.RegisterRoutes(r, deps.MealHandler, deps.BookingHandler, deps.TokenPrv)
 
 	return r
 }
