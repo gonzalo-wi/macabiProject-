@@ -49,10 +49,11 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	bookMealUC := mealusecases.NewBookMeal(mealRepo, bookingRepo)
 	cancelBookingUC := mealusecases.NewCancelBooking(bookingRepo, mealRepo)
 	listMyBookingsUC := mealusecases.NewListMyBookings(bookingRepo)
+	getDailySummaryUC := mealusecases.NewGetDailySummary(bookingRepo)
 
 	// Meal handlers
 	mealHandler := mealhttp.NewMealHandler(createMealUC, listAvailableMealsUC)
-	bookingHandler := mealhttp.NewBookingHandler(bookMealUC, cancelBookingUC, listMyBookingsUC)
+	bookingHandler := mealhttp.NewBookingHandler(bookMealUC, cancelBookingUC, listMyBookingsUC, getDailySummaryUC)
 
 	return &Dependencies{
 		AuthHandler:    authHandler,

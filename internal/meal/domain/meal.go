@@ -58,11 +58,9 @@ func (m *Meal) IncrementAvailable() {
 	m.SoldOut = false
 }
 
-// BookingDeadlineWeekday and BookingDeadlineHour define the cutoff for reservations.
-// Change these values to adjust the deadline (e.g. Friday 23:59).
 const (
 	BookingDeadlineWeekday = time.Friday
-	BookingDeadlineHour    = 23
+	BookingDeadlineHour    = 11
 	BookingDeadlineMinute  = 59
 )
 
@@ -70,9 +68,7 @@ func isSaturday(date time.Time) bool {
 	return date.Weekday() == time.Saturday
 }
 
-// IsBookingOpen reports whether reservations are still accepted for the given meal date.
 func IsBookingOpen(mealDate time.Time, now time.Time) bool {
-	// Find the Friday before the Saturday meal date
 	frida := mealDate.AddDate(0, 0, -1)
 	deadline := time.Date(frida.Year(), frida.Month(), frida.Day(),
 		BookingDeadlineHour, BookingDeadlineMinute, 59, 0, mealDate.Location())

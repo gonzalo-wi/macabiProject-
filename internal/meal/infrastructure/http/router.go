@@ -21,5 +21,10 @@ func RegisterRoutes(r *gin.Engine, mealHandler *MealHandler, bookingHandler *Boo
 		api.POST("/bookings", bookingHandler.Book)
 		api.GET("/bookings/mine", bookingHandler.ListMine)
 		api.DELETE("/bookings/:id", bookingHandler.Cancel)
+
+		api.GET("/admin/bookings/daily-summary",
+			userhttp.RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			bookingHandler.DailySummary,
+		)
 	}
 }

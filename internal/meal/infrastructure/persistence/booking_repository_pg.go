@@ -82,25 +82,18 @@ func (r *BookingRepositoryPG) FindByUserID(ctx context.Context, userID string, p
 	return bookings, total, nil
 }
 
-func (r *BookingRepositoryPG) FindByUserAndMealTypeAndDate(ctx context.Context, userID string, mealType mealdomain.MealType, date time.Time, isPostre bool) (*mealdomain.Booking, error) {
+func (r *BookingRepositoryPG) FindByUserAndMealTypeAndDate(ctx context.Context, userID string, mealType mealdomain.MealType, date time.Time) (*mealdomain.Booking, error) {
 	start := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	end := start.Add(24 * time.Hour)
 
 	var model BookingModel
-	query := r.db.WithContext(ctx).
+	err := r.db.WithContext(ctx).
 		Select("meal_bookings.*").
 		Joins("JOIN meals ON meals.id = meal_bookings.meal_id").
 		Where("meal_bookings.user_id = ?", userID).
 		Where("meals.type = ?", string(mealType)).
-		Where("meals.date >= ? AND meals.date < ?", start, end)
-
-	if isPostre {
-		query = query.Where("meals.category = ?", string(mealdomain.CategoryPostre))
-	} else {
-		query = query.Where("meals.category != ?", string(mealdomain.CategoryPostre))
-	}
-
-	err := query.First(&model).Error
+		Where("meals.date >= ? AND meals.date < ?", start, end).
+		First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, mealdomain.ErrBookingNotFound
@@ -129,4 +122,58 @@ func toDomainBooking(model *BookingModel) *mealdomain.Booking {
 		b.Meal = toDomainMeal(&model.Meal)
 	}
 	return b
+}
+
+type dailySummaryRow struct {
+	MealID    string
+	MealTitle string
+	UserName  string
+}
+
+func (r *BookingRepositoryPG) GetDailySummary(ctx context.Context, date time.Time) (*mealdomain.DailySummary, error) {
+	start := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+	end := start.Add(24 * time.Hour)
+
+	var rows []dailySummaryRow
+	err := r.db.WithContext(ctx).
+		Table("meal_bookings b").
+		Select("m.id AS meal_id, m.title AS meal_title, u.name AS user_name").
+		Joins("JOIN meals m ON m.id = b.meal_id").
+		Joins("JOIN users u ON u.id = b.user_id").
+		Where("m.date >= ? AND m.date < ?", start, end).
+		Order("m.id, u.name").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, fmt.Errorf("get daily summary: %w", err)
+	}
+
+	indexByMealID := make(map[string]int)
+	summaries := make([]mealdomain.MealDailySummary, 0)
+	for _, row := range rows {
+		idx, exists := indexByMealID[row.MealID]
+		if !exists {
+			summaries = append(summaries, mealdomain.MealDailySummary{
+				MealID:  row.MealID,
+				Title:   row.MealTitle,
+				Persons: []mealdomain.PersonSummary{},
+			})
+			idx = len(summaries) - 1
+			indexByMealID[row.MealID] = idx
+		}
+		summaries[idx].Quantity++
+		summaries[idx].Persons = append(summaries[idx].Persons, mealdomain.PersonSummary{
+			Name: row.UserName,
+		})
+	}
+
+	total := 0
+	for _, s := range summaries {
+		total += s.Quantity
+	}
+
+	return &mealdomain.DailySummary{
+		Date:          start,
+		TotalMenus:    total,
+		MealSummaries: summaries,
+	}, nil
 }

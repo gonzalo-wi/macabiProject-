@@ -11,7 +11,6 @@ const (
 )
 
 const (
-	CategoryPostre          Category = "postre"
 	CategoryComida          Category = "comida"
 	CategoryPastas          Category = "pastas"
 	CategoryMilanesas       Category = "milanesas"
@@ -27,7 +26,6 @@ var validMealTypes = map[MealType]bool{
 }
 
 var validCategories = map[Category]bool{
-	CategoryPostre:          true,
 	CategoryComida:          true,
 	CategoryPastas:          true,
 	CategoryMilanesas:       true,
@@ -59,8 +57,4 @@ func (mt MealType) String() string {
 
 func (c Category) String() string {
 	return string(c)
-}
-
-func (c Category) IsPostre() bool {
-	return c == CategoryPostre
 }

@@ -83,3 +83,43 @@ func ToBookingResponse(b *mealdomain.Booking) BookingResponse {
 	}
 	return resp
 }
+
+// --- Daily summary (admin) ---
+
+type PersonSummaryResponse struct {
+	Nombre string `json:"nombre"`
+}
+
+type MealDailySummaryResponse struct {
+	MenuID   string                  `json:"menuId"`
+	Nombre   string                  `json:"nombre"`
+	Cantidad int                     `json:"cantidad"`
+	Personas []PersonSummaryResponse `json:"personas"`
+}
+
+type DailySummaryResponse struct {
+	Fecha      string                     `json:"fecha"`
+	TotalMenus int                        `json:"totalMenus"`
+	PorMenu    []MealDailySummaryResponse `json:"porMenu"`
+}
+
+func ToDailySummaryResponse(s *mealdomain.DailySummary) DailySummaryResponse {
+	porMenu := make([]MealDailySummaryResponse, len(s.MealSummaries))
+	for i, ms := range s.MealSummaries {
+		personas := make([]PersonSummaryResponse, len(ms.Persons))
+		for j, p := range ms.Persons {
+			personas[j] = PersonSummaryResponse{Nombre: p.Name}
+		}
+		porMenu[i] = MealDailySummaryResponse{
+			MenuID:   ms.MealID,
+			Nombre:   ms.Title,
+			Cantidad: ms.Quantity,
+			Personas: personas,
+		}
+	}
+	return DailySummaryResponse{
+		Fecha:      s.Date.Format("2006-01-02"),
+		TotalMenus: s.TotalMenus,
+		PorMenu:    porMenu,
+	}
+}

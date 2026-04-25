@@ -37,7 +37,7 @@ func (uc *BookMeal) Execute(ctx context.Context, input BookMealInput) (*mealdoma
 	if meal.SoldOut {
 		return nil, mealdomain.ErrMealSoldOut
 	}
-	existing, err := uc.bookingRepo.FindByUserAndMealTypeAndDate(ctx, input.UserID, meal.Type, meal.Date, meal.Category.IsPostre())
+	existing, err := uc.bookingRepo.FindByUserAndMealTypeAndDate(ctx, input.UserID, meal.Type, meal.Date)
 	if err == nil && existing != nil {
 		prev, prevErr := uc.mealRepo.FindByID(ctx, existing.MealID)
 		if prevErr == nil {
