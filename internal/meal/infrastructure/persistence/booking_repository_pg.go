@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mealdomain "macabi-back/internal/meal/domain"
+	"macabi-back/internal/shared/database"
 	"macabi-back/internal/shared/pagination"
 
 	"gorm.io/gorm"
@@ -32,12 +33,16 @@ func NewBookingRepositoryPG(db *gorm.DB) *BookingRepositoryPG {
 	return &BookingRepositoryPG{db: db}
 }
 
+func (r *BookingRepositoryPG) tx(ctx context.Context) *gorm.DB {
+	return database.TxFromCtx(ctx, r.db).WithContext(ctx)
+}
+
 func (r *BookingRepositoryPG) Save(ctx context.Context, booking *mealdomain.Booking) error {
 	model := BookingModel{
 		UserID: booking.UserID,
 		MealID: booking.MealID,
 	}
-	if err := r.db.WithContext(ctx).Create(&model).Error; err != nil {
+	if err := r.tx(ctx).Create(&model).Error; err != nil {
 		return fmt.Errorf("save booking: %w", err)
 	}
 	booking.ID = model.ID
@@ -47,7 +52,7 @@ func (r *BookingRepositoryPG) Save(ctx context.Context, booking *mealdomain.Book
 
 func (r *BookingRepositoryPG) FindByID(ctx context.Context, id string) (*mealdomain.Booking, error) {
 	var model BookingModel
-	err := r.db.WithContext(ctx).Preload("Meal").Where("id = ?", id).First(&model).Error
+	err := r.tx(ctx).Preload("Meal").Where("id = ?", id).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, mealdomain.ErrBookingNotFound
@@ -59,12 +64,12 @@ func (r *BookingRepositoryPG) FindByID(ctx context.Context, id string) (*mealdom
 
 func (r *BookingRepositoryPG) FindByUserID(ctx context.Context, userID string, params pagination.Params) ([]mealdomain.Booking, int64, error) {
 	var total int64
-	if err := r.db.WithContext(ctx).Model(&BookingModel{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+	if err := r.tx(ctx).Model(&BookingModel{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("count bookings: %w", err)
 	}
 
 	var models []BookingModel
-	err := r.db.WithContext(ctx).
+	err := r.tx(ctx).
 		Preload("Meal").
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
@@ -87,7 +92,7 @@ func (r *BookingRepositoryPG) FindByUserAndMealTypeAndDate(ctx context.Context, 
 	end := start.Add(24 * time.Hour)
 
 	var model BookingModel
-	err := r.db.WithContext(ctx).
+	err := r.tx(ctx).
 		Select("meal_bookings.*").
 		Joins("JOIN meals ON meals.id = meal_bookings.meal_id").
 		Where("meal_bookings.user_id = ?", userID).
@@ -104,7 +109,7 @@ func (r *BookingRepositoryPG) FindByUserAndMealTypeAndDate(ctx context.Context, 
 }
 
 func (r *BookingRepositoryPG) Delete(ctx context.Context, id string) error {
-	err := r.db.WithContext(ctx).Where("id = ?", id).Delete(&BookingModel{}).Error
+	err := r.tx(ctx).Where("id = ?", id).Delete(&BookingModel{}).Error
 	if err != nil {
 		return fmt.Errorf("delete booking: %w", err)
 	}

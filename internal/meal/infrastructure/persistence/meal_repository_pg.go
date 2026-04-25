@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mealdomain "macabi-back/internal/meal/domain"
+	"macabi-back/internal/shared/database"
 	"macabi-back/internal/shared/pagination"
 
 	"gorm.io/gorm"
@@ -42,9 +43,13 @@ func RunMigrations(db *gorm.DB) error {
 	return db.AutoMigrate(&MealModel{}, &BookingModel{})
 }
 
+func (r *MealRepositoryPG) tx(ctx context.Context) *gorm.DB {
+	return database.TxFromCtx(ctx, r.db).WithContext(ctx)
+}
+
 func (r *MealRepositoryPG) Save(ctx context.Context, meal *mealdomain.Meal) error {
 	model := toMealModel(meal)
-	if err := r.db.WithContext(ctx).Create(&model).Error; err != nil {
+	if err := r.tx(ctx).Create(&model).Error; err != nil {
 		return fmt.Errorf("save meal: %w", err)
 	}
 	meal.ID = model.ID
@@ -55,7 +60,7 @@ func (r *MealRepositoryPG) Save(ctx context.Context, meal *mealdomain.Meal) erro
 
 func (r *MealRepositoryPG) FindByID(ctx context.Context, id string) (*mealdomain.Meal, error) {
 	var model MealModel
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&model).Error
+	err := r.tx(ctx).Where("id = ?", id).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, mealdomain.ErrMealNotFound
@@ -70,14 +75,14 @@ func (r *MealRepositoryPG) FindByDate(ctx context.Context, date time.Time, param
 	end := start.Add(24 * time.Hour)
 
 	var total int64
-	if err := r.db.WithContext(ctx).Model(&MealModel{}).
+	if err := r.tx(ctx).Model(&MealModel{}).
 		Where("date >= ? AND date < ?", start, end).
 		Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("count meals: %w", err)
 	}
 
 	var models []MealModel
-	err := r.db.WithContext(ctx).
+	err := r.tx(ctx).
 		Where("date >= ? AND date < ?", start, end).
 		Order("type ASC, category ASC").
 		Offset(params.Offset()).
@@ -95,7 +100,7 @@ func (r *MealRepositoryPG) FindByDate(ctx context.Context, date time.Time, param
 }
 
 func (r *MealRepositoryPG) Update(ctx context.Context, meal *mealdomain.Meal) error {
-	err := r.db.WithContext(ctx).Model(&MealModel{}).Where("id = ?", meal.ID).Updates(map[string]interface{}{
+	err := r.tx(ctx).Model(&MealModel{}).Where("id = ?", meal.ID).Updates(map[string]interface{}{
 		"title":           meal.Title,
 		"image_url":       meal.ImageURL,
 		"description":     meal.Description,
@@ -112,7 +117,7 @@ func (r *MealRepositoryPG) Update(ctx context.Context, meal *mealdomain.Meal) er
 }
 
 func (r *MealRepositoryPG) Delete(ctx context.Context, id string) error {
-	err := r.db.WithContext(ctx).Where("id = ?", id).Delete(&MealModel{}).Error
+	err := r.tx(ctx).Where("id = ?", id).Delete(&MealModel{}).Error
 	if err != nil {
 		return fmt.Errorf("delete meal: %w", err)
 	}

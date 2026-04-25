@@ -11,10 +11,11 @@ import (
 type CancelBooking struct {
 	bookingRepo mealports.BookingRepository
 	mealRepo    mealports.MealRepository
+	transactor  mealports.Transactor
 }
 
-func NewCancelBooking(bookingRepo mealports.BookingRepository, mealRepo mealports.MealRepository) *CancelBooking {
-	return &CancelBooking{bookingRepo: bookingRepo, mealRepo: mealRepo}
+func NewCancelBooking(bookingRepo mealports.BookingRepository, mealRepo mealports.MealRepository, transactor mealports.Transactor) *CancelBooking {
+	return &CancelBooking{bookingRepo: bookingRepo, mealRepo: mealRepo, transactor: transactor}
 }
 
 type CancelBookingInput struct {
@@ -31,16 +32,18 @@ func (uc *CancelBooking) Execute(ctx context.Context, input CancelBookingInput) 
 		return mealdomain.ErrBookingNotOwned
 	}
 
-	meal, err := uc.mealRepo.FindByID(ctx, booking.MealID)
-	if err != nil {
-		return fmt.Errorf("find meal: %w", err)
-	}
-	meal.IncrementAvailable()
-	if err := uc.mealRepo.Update(ctx, meal); err != nil {
-		return fmt.Errorf("update meal: %w", err)
-	}
-	if err := uc.bookingRepo.Delete(ctx, input.BookingID); err != nil {
-		return fmt.Errorf("cancel booking: %w", err)
-	}
-	return nil
+	return uc.transactor.WithinTransaction(ctx, func(ctx context.Context) error {
+		meal, err := uc.mealRepo.FindByID(ctx, booking.MealID)
+		if err != nil {
+			return fmt.Errorf("find meal: %w", err)
+		}
+		meal.IncrementAvailable()
+		if err := uc.mealRepo.Update(ctx, meal); err != nil {
+			return fmt.Errorf("update meal: %w", err)
+		}
+		if err := uc.bookingRepo.Delete(ctx, input.BookingID); err != nil {
+			return fmt.Errorf("cancel booking: %w", err)
+		}
+		return nil
+	})
 }

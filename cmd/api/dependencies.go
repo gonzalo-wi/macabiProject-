@@ -5,6 +5,7 @@ import (
 	mealhttp "macabi-back/internal/meal/infrastructure/http"
 	mealpersistence "macabi-back/internal/meal/infrastructure/persistence"
 	"macabi-back/internal/shared/config"
+	"macabi-back/internal/shared/database"
 	userports "macabi-back/internal/user/application/ports"
 	userusecases "macabi-back/internal/user/application/usecases"
 	userhttp "macabi-back/internal/user/infrastructure/http"
@@ -42,12 +43,13 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	// Meal infrastructure
 	mealRepo := mealpersistence.NewMealRepositoryPG(db)
 	bookingRepo := mealpersistence.NewBookingRepositoryPG(db)
+	transactor := database.NewGORMTransactor(db)
 
 	// Meal use cases
 	createMealUC := mealusecases.NewCreateMeal(mealRepo)
 	listAvailableMealsUC := mealusecases.NewListAvailableMeals(mealRepo)
-	bookMealUC := mealusecases.NewBookMeal(mealRepo, bookingRepo)
-	cancelBookingUC := mealusecases.NewCancelBooking(bookingRepo, mealRepo)
+	bookMealUC := mealusecases.NewBookMeal(mealRepo, bookingRepo, transactor)
+	cancelBookingUC := mealusecases.NewCancelBooking(bookingRepo, mealRepo, transactor)
 	listMyBookingsUC := mealusecases.NewListMyBookings(bookingRepo)
 	getDailySummaryUC := mealusecases.NewGetDailySummary(bookingRepo)
 
