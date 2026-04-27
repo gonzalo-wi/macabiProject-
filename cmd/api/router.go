@@ -23,7 +23,7 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	})
 
 	userhttp.RegisterRoutes(r, deps.AuthHandler, deps.UserHandler, deps.TokenPrv)
-	mealhttp.RegisterRoutes(r, deps.MealHandler, deps.BookingHandler, deps.TokenPrv)
+	mealhttp.RegisterRoutes(r, deps.MealHandler, deps.BookingHandler, deps.MealTemplateHandler, deps.TokenPrv)
 
 	return r
 }

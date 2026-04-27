@@ -13,4 +13,5 @@ var (
 	ErrBookingNotOwned       = errors.New("no puedes cancelar una reserva que no es tuya")
 	ErrInvalidAvailableCount = errors.New("la cantidad disponible no puede ser negativa")
 	ErrBookingDeadlinePassed = errors.New("el plazo para reservar ya cerró (viernes 23:59)")
+	ErrTemplateNotFound      = errors.New("template de vianda no encontrado")
 )

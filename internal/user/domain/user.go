@@ -12,6 +12,7 @@ type User struct {
 	Email     string
 	Password  string
 	Role      Role
+	Active    bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -30,6 +31,7 @@ func NewUser(name, email, hashedPassword string) (*User, error) {
 		Email:    email,
 		Password: hashedPassword,
 		Role:     RoleUser,
+		Active:   true,
 	}, nil
 }
 
@@ -47,6 +49,9 @@ func (u *User) ChangeRole(newRole Role, changedBy *User) error {
 	u.Role = newRole
 	return nil
 }
+
+func (u *User) Activate()   { u.Active = true }
+func (u *User) Deactivate() { u.Active = false }
 
 func isValidEmail(email string) bool {
 	_, err := mail.ParseAddress(email)

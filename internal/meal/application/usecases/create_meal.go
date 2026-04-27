@@ -10,38 +10,32 @@ import (
 )
 
 type CreateMeal struct {
-	repo mealports.MealRepository
+	repo         mealports.MealRepository
+	templateRepo mealports.MealTemplateRepository
 }
 
-func NewCreateMeal(repo mealports.MealRepository) *CreateMeal {
-	return &CreateMeal{repo: repo}
+func NewCreateMeal(repo mealports.MealRepository, templateRepo mealports.MealTemplateRepository) *CreateMeal {
+	return &CreateMeal{repo: repo, templateRepo: templateRepo}
 }
 
 type CreateMealInput struct {
-	Title          string
-	ImageURL       string
-	Description    string
-	Category       string
-	Type           string
+	TemplateID     string
 	AvailableCount int
 	Date           time.Time
 }
 
 func (uc *CreateMeal) Execute(ctx context.Context, input CreateMealInput) (*mealdomain.Meal, error) {
-	category, err := mealdomain.NewCategory(input.Category)
+	tmpl, err := uc.templateRepo.FindByID(ctx, input.TemplateID)
 	if err != nil {
 		return nil, err
 	}
-	mealType, err := mealdomain.NewMealType(input.Type)
-	if err != nil {
-		return nil, err
-	}
-	meal, err := mealdomain.NewMeal(input.Title, input.ImageURL, input.Description, category, mealType, input.AvailableCount, input.Date)
+	meal, err := mealdomain.NewMeal(input.TemplateID, input.AvailableCount, input.Date)
 	if err != nil {
 		return nil, err
 	}
 	if err := uc.repo.Save(ctx, meal); err != nil {
 		return nil, fmt.Errorf("create meal: %w", err)
 	}
+	meal.Template = tmpl
 	return meal, nil
 }

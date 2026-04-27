@@ -46,7 +46,7 @@ func (uc *BookMeal) Execute(ctx context.Context, input BookMealInput) (*mealdoma
 			return mealdomain.ErrMealSoldOut
 		}
 
-		existing, err := uc.bookingRepo.FindByUserAndMealTypeAndDate(ctx, input.UserID, meal.Type, meal.Date)
+		existing, err := uc.bookingRepo.FindByUserAndMealTypeAndDate(ctx, input.UserID, meal.Template.Type, meal.Date)
 		if err != nil && !errors.Is(err, mealdomain.ErrBookingNotFound) {
 			return fmt.Errorf("check existing booking: %w", err)
 		}

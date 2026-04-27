@@ -15,10 +15,27 @@ type UserHandler struct {
 	getCurrentUserUC *userusecases.GetCurrentUser
 	changeRoleUC     *userusecases.ChangeRole
 	listUsersUC      *userusecases.ListUsers
+	setUserStatusUC  *userusecases.SetUserStatus
+	updateUserUC     *userusecases.UpdateUser
+	changePasswordUC *userusecases.ChangePassword
 }
 
-func NewUserHandler(getCurrentUserUC *userusecases.GetCurrentUser, changeRoleUC *userusecases.ChangeRole, listUsersUC *userusecases.ListUsers) *UserHandler {
-	return &UserHandler{getCurrentUserUC: getCurrentUserUC, changeRoleUC: changeRoleUC, listUsersUC: listUsersUC}
+func NewUserHandler(
+	getCurrentUserUC *userusecases.GetCurrentUser,
+	changeRoleUC *userusecases.ChangeRole,
+	listUsersUC *userusecases.ListUsers,
+	setUserStatusUC *userusecases.SetUserStatus,
+	updateUserUC *userusecases.UpdateUser,
+	changePasswordUC *userusecases.ChangePassword,
+) *UserHandler {
+	return &UserHandler{
+		getCurrentUserUC: getCurrentUserUC,
+		changeRoleUC:     changeRoleUC,
+		listUsersUC:      listUsersUC,
+		setUserStatusUC:  setUserStatusUC,
+		updateUserUC:     updateUserUC,
+		changePasswordUC: changePasswordUC,
+	}
 }
 
 func (h *UserHandler) Me(c *gin.Context) {
@@ -77,4 +94,63 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *UserHandler) SetStatus(c *gin.Context) {
+	targetUserID := c.Param("id")
+	var req SetUserStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+
+	err := h.setUserStatusUC.Execute(c.Request.Context(), userusecases.SetUserStatusInput{
+		TargetUserID: targetUserID,
+		Active:       req.Active,
+	})
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "estado actualizado correctamente"})
+}
+
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	targetUserID := c.Param("id")
+	var req UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+
+	user, err := h.updateUserUC.Execute(c.Request.Context(), userusecases.UpdateUserInput{
+		TargetUserID: targetUserID,
+		Name:         req.Name,
+		Email:        req.Email,
+	})
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, ToUserResponse(user))
+}
+
+func (h *UserHandler) ChangePassword(c *gin.Context) {
+	userID := c.GetString(AuthUserIDKey)
+	var req ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+
+	err := h.changePasswordUC.Execute(c.Request.Context(), userusecases.ChangePasswordInput{
+		UserID:          userID,
+		CurrentPassword: req.CurrentPassword,
+		NewPassword:     req.NewPassword,
+	})
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "contraseña actualizada correctamente"})
 }

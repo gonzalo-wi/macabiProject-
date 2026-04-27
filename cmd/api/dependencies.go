@@ -16,11 +16,12 @@ import (
 )
 
 type Dependencies struct {
-	AuthHandler    *userhttp.AuthHandler
-	UserHandler    *userhttp.UserHandler
-	MealHandler    *mealhttp.MealHandler
-	BookingHandler *mealhttp.BookingHandler
-	TokenPrv       userports.TokenProvider
+	AuthHandler         *userhttp.AuthHandler
+	UserHandler         *userhttp.UserHandler
+	MealHandler         *mealhttp.MealHandler
+	BookingHandler      *mealhttp.BookingHandler
+	MealTemplateHandler *mealhttp.MealTemplateHandler
+	TokenPrv            userports.TokenProvider
 }
 
 func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
@@ -35,33 +36,44 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	getCurrentUserUC := userusecases.NewGetCurrentUser(userRepo)
 	changeRoleUC := userusecases.NewChangeRole(userRepo)
 	listUsersUC := userusecases.NewListUsers(userRepo)
+	setUserStatusUC := userusecases.NewSetUserStatus(userRepo)
+	updateUserUC := userusecases.NewUpdateUser(userRepo)
+	changePasswordUC := userusecases.NewChangePassword(userRepo, hasher)
 
 	// User handlers
 	authHandler := userhttp.NewAuthHandler(registerUC, loginUC)
-	userHandler := userhttp.NewUserHandler(getCurrentUserUC, changeRoleUC, listUsersUC)
+	userHandler := userhttp.NewUserHandler(getCurrentUserUC, changeRoleUC, listUsersUC, setUserStatusUC, updateUserUC, changePasswordUC)
 
 	// Meal infrastructure
 	mealRepo := mealpersistence.NewMealRepositoryPG(db)
+	templateRepo := mealpersistence.NewMealTemplateRepositoryPG(db)
 	bookingRepo := mealpersistence.NewBookingRepositoryPG(db)
 	transactor := database.NewGORMTransactor(db)
 
 	// Meal use cases
-	createMealUC := mealusecases.NewCreateMeal(mealRepo)
+	createMealTemplateUC := mealusecases.NewCreateMealTemplate(templateRepo)
+	listMealTemplatesUC := mealusecases.NewListMealTemplates(templateRepo)
+	updateMealTemplateUC := mealusecases.NewUpdateMealTemplate(templateRepo)
+	deleteMealTemplateUC := mealusecases.NewDeleteMealTemplate(templateRepo)
+	createMealUC := mealusecases.NewCreateMeal(mealRepo, templateRepo)
 	listAvailableMealsUC := mealusecases.NewListAvailableMeals(mealRepo)
+	deleteMealUC := mealusecases.NewDeleteMeal(mealRepo)
 	bookMealUC := mealusecases.NewBookMeal(mealRepo, bookingRepo, transactor)
 	cancelBookingUC := mealusecases.NewCancelBooking(bookingRepo, mealRepo, transactor)
 	listMyBookingsUC := mealusecases.NewListMyBookings(bookingRepo)
 	getDailySummaryUC := mealusecases.NewGetDailySummary(bookingRepo)
 
 	// Meal handlers
-	mealHandler := mealhttp.NewMealHandler(createMealUC, listAvailableMealsUC)
+	mealHandler := mealhttp.NewMealHandler(createMealUC, listAvailableMealsUC, deleteMealUC)
 	bookingHandler := mealhttp.NewBookingHandler(bookMealUC, cancelBookingUC, listMyBookingsUC, getDailySummaryUC)
+	templateHandler := mealhttp.NewMealTemplateHandler(createMealTemplateUC, listMealTemplatesUC, updateMealTemplateUC, deleteMealTemplateUC)
 
 	return &Dependencies{
-		AuthHandler:    authHandler,
-		UserHandler:    userHandler,
-		MealHandler:    mealHandler,
-		BookingHandler: bookingHandler,
-		TokenPrv:       jwtProvider,
+		AuthHandler:         authHandler,
+		UserHandler:         userHandler,
+		MealHandler:         mealHandler,
+		BookingHandler:      bookingHandler,
+		MealTemplateHandler: templateHandler,
+		TokenPrv:            jwtProvider,
 	}
 }

@@ -52,7 +52,7 @@ func (r *BookingRepositoryPG) Save(ctx context.Context, booking *mealdomain.Book
 
 func (r *BookingRepositoryPG) FindByID(ctx context.Context, id string) (*mealdomain.Booking, error) {
 	var model BookingModel
-	err := r.tx(ctx).Preload("Meal").Where("id = ?", id).First(&model).Error
+	err := r.tx(ctx).Preload("Meal.Template").Where("id = ?", id).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, mealdomain.ErrBookingNotFound
@@ -70,7 +70,7 @@ func (r *BookingRepositoryPG) FindByUserID(ctx context.Context, userID string, p
 
 	var models []BookingModel
 	err := r.tx(ctx).
-		Preload("Meal").
+		Preload("Meal.Template").
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
 		Offset(params.Offset()).
@@ -95,8 +95,9 @@ func (r *BookingRepositoryPG) FindByUserAndMealTypeAndDate(ctx context.Context, 
 	err := r.tx(ctx).
 		Select("meal_bookings.*").
 		Joins("JOIN meals ON meals.id = meal_bookings.meal_id").
+		Joins("JOIN meal_templates ON meal_templates.id = meals.template_id").
 		Where("meal_bookings.user_id = ?", userID).
-		Where("meals.type = ?", string(mealType)).
+		Where("meal_templates.type = ?", string(mealType)).
 		Where("meals.date >= ? AND meals.date < ?", start, end).
 		First(&model).Error
 	if err != nil {
@@ -142,8 +143,9 @@ func (r *BookingRepositoryPG) GetDailySummary(ctx context.Context, date time.Tim
 	var rows []dailySummaryRow
 	err := r.db.WithContext(ctx).
 		Table("meal_bookings b").
-		Select("m.id AS meal_id, m.title AS meal_title, u.name AS user_name").
+		Select("m.id AS meal_id, mt.title AS meal_title, u.name AS user_name").
 		Joins("JOIN meals m ON m.id = b.meal_id").
+		Joins("JOIN meal_templates mt ON mt.id = m.template_id").
 		Joins("JOIN users u ON u.id = b.user_id").
 		Where("m.date >= ? AND m.date < ?", start, end).
 		Order("m.id, u.name").

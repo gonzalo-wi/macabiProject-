@@ -10,7 +10,8 @@ import (
 func httpStatus(err error) int {
 	switch {
 	case errors.Is(err, mealdomain.ErrMealNotFound),
-		errors.Is(err, mealdomain.ErrBookingNotFound):
+		errors.Is(err, mealdomain.ErrBookingNotFound),
+		errors.Is(err, mealdomain.ErrTemplateNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, mealdomain.ErrEmptyTitle),
 		errors.Is(err, mealdomain.ErrInvalidMealType),

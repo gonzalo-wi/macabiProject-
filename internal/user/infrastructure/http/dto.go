@@ -21,11 +21,26 @@ type ChangeRoleRequest struct {
 	Role string `json:"role" binding:"required"`
 }
 
+type SetUserStatusRequest struct {
+	Active bool `json:"active"`
+}
+
+type UpdateUserRequest struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required"`
+}
+
 type UserResponse struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`
+	Active    bool      `json:"active"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -48,6 +63,7 @@ func ToUserResponse(u *userdomain.User) UserResponse {
 		Name:      u.Name,
 		Email:     u.Email,
 		Role:      u.Role.String(),
+		Active:    u.Active,
 		CreatedAt: u.CreatedAt,
 	}
 }

@@ -18,6 +18,7 @@ type UserModel struct {
 	Email     string `gorm:"uniqueIndex;not null"`
 	Password  string `gorm:"not null"`
 	Role      string `gorm:"not null;default:'user'"`
+	Active    bool   `gorm:"not null;default:true"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -79,6 +80,7 @@ func (r *UserRepositoryPG) Update(ctx context.Context, user *userdomain.User) er
 		"email":    user.Email,
 		"role":     string(user.Role),
 		"password": user.Password,
+		"active":   user.Active,
 	}).Error
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
@@ -116,6 +118,7 @@ func toModel(u *userdomain.User) *UserModel {
 		Email:    u.Email,
 		Password: u.Password,
 		Role:     string(u.Role),
+		Active:   u.Active,
 	}
 }
 
@@ -126,6 +129,7 @@ func toDomain(m *UserModel) *userdomain.User {
 		Email:     m.Email,
 		Password:  m.Password,
 		Role:      userdomain.Role(m.Role),
+		Active:    m.Active,
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
 	}

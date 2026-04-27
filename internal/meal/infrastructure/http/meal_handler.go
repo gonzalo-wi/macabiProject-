@@ -15,10 +15,11 @@ import (
 type MealHandler struct {
 	createMealUC         *mealusecases.CreateMeal
 	listAvailableMealsUC *mealusecases.ListAvailableMeals
+	deleteMealUC         *mealusecases.DeleteMeal
 }
 
-func NewMealHandler(createMealUC *mealusecases.CreateMeal, listAvailableMealsUC *mealusecases.ListAvailableMeals) *MealHandler {
-	return &MealHandler{createMealUC: createMealUC, listAvailableMealsUC: listAvailableMealsUC}
+func NewMealHandler(createMealUC *mealusecases.CreateMeal, listAvailableMealsUC *mealusecases.ListAvailableMeals, deleteMealUC *mealusecases.DeleteMeal) *MealHandler {
+	return &MealHandler{createMealUC: createMealUC, listAvailableMealsUC: listAvailableMealsUC, deleteMealUC: deleteMealUC}
 }
 
 func (h *MealHandler) Create(c *gin.Context) {
@@ -29,11 +30,7 @@ func (h *MealHandler) Create(c *gin.Context) {
 	}
 
 	meal, err := h.createMealUC.Execute(c.Request.Context(), mealusecases.CreateMealInput{
-		Title:          req.Title,
-		ImageURL:       req.ImageURL,
-		Description:    req.Description,
-		Category:       req.Category,
-		Type:           req.Type,
+		TemplateID:     req.TemplateID,
 		AvailableCount: req.AvailableCount,
 		Date:           req.Date,
 	})
@@ -80,4 +77,13 @@ func (h *MealHandler) ListByDate(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *MealHandler) Delete(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.deleteMealUC.Execute(c.Request.Context(), id); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "vianda eliminada correctamente"})
 }

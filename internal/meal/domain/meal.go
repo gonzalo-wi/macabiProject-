@@ -1,17 +1,13 @@
 package mealdomain
 
 import (
-	"strings"
 	"time"
 )
 
 type Meal struct {
 	ID             string
-	Title          string
-	ImageURL       string
-	Description    string
-	Category       Category
-	Type           MealType
+	TemplateID     string
+	Template       *MealTemplate
 	SoldOut        bool
 	AvailableCount int
 	Date           time.Time
@@ -19,11 +15,7 @@ type Meal struct {
 	UpdatedAt      time.Time
 }
 
-func NewMeal(title, imageURL, description string, category Category, mealType MealType, availableCount int, date time.Time) (*Meal, error) {
-	title = strings.TrimSpace(title)
-	if title == "" {
-		return nil, ErrEmptyTitle
-	}
+func NewMeal(templateID string, availableCount int, date time.Time) (*Meal, error) {
 	if availableCount < 0 {
 		return nil, ErrInvalidAvailableCount
 	}
@@ -31,11 +23,7 @@ func NewMeal(title, imageURL, description string, category Category, mealType Me
 		return nil, ErrInvalidDate
 	}
 	return &Meal{
-		Title:          title,
-		ImageURL:       imageURL,
-		Description:    description,
-		Category:       category,
-		Type:           mealType,
+		TemplateID:     templateID,
 		SoldOut:        availableCount == 0,
 		AvailableCount: availableCount,
 		Date:           date,

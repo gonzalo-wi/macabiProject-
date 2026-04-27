@@ -6,18 +6,61 @@ import (
 	mealdomain "macabi-back/internal/meal/domain"
 )
 
+type CreateMealTemplateRequest struct {
+	Title       string `json:"title" binding:"required"`
+	ImageURL    string `json:"image_url"`
+	Description string `json:"description"`
+	Category    string `json:"category" binding:"required"`
+	Type        string `json:"type" binding:"required"`
+}
+
+type UpdateMealTemplateRequest struct {
+	Title       string `json:"title"`
+	ImageURL    string `json:"image_url"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	Type        string `json:"type"`
+}
+
+type MealTemplateResponse struct {
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	ImageURL    string    `json:"image_url"`
+	Description string    `json:"description"`
+	Category    string    `json:"category"`
+	Type        string    `json:"type"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type PaginatedMealTemplateResponse struct {
+	Data       []MealTemplateResponse `json:"data"`
+	Total      int64                  `json:"total"`
+	Page       int                    `json:"page"`
+	PageSize   int                    `json:"page_size"`
+	TotalPages int                    `json:"total_pages"`
+}
+
+func ToMealTemplateResponse(t *mealdomain.MealTemplate) MealTemplateResponse {
+	return MealTemplateResponse{
+		ID:          t.ID,
+		Title:       t.Title,
+		ImageURL:    t.ImageURL,
+		Description: t.Description,
+		Category:    t.Category.String(),
+		Type:        t.Type.String(),
+		CreatedAt:   t.CreatedAt,
+	}
+}
+
 type CreateMealRequest struct {
-	Title          string    `json:"title" binding:"required"`
-	ImageURL       string    `json:"image_url"`
-	Description    string    `json:"description"`
-	Category       string    `json:"category" binding:"required"`
-	Type           string    `json:"type" binding:"required"`
+	TemplateID     string    `json:"template_id" binding:"required"`
 	AvailableCount int       `json:"available_count" binding:"min=0"`
 	Date           time.Time `json:"date" binding:"required"`
 }
 
 type MealResponse struct {
 	ID             string    `json:"id"`
+	TemplateID     string    `json:"template_id"`
 	Title          string    `json:"title"`
 	ImageURL       string    `json:"image_url"`
 	Description    string    `json:"description"`
@@ -57,18 +100,22 @@ type PaginatedBookingResponse struct {
 }
 
 func ToMealResponse(m *mealdomain.Meal) MealResponse {
-	return MealResponse{
+	r := MealResponse{
 		ID:             m.ID,
-		Title:          m.Title,
-		ImageURL:       m.ImageURL,
-		Description:    m.Description,
-		Category:       m.Category.String(),
-		Type:           m.Type.String(),
+		TemplateID:     m.TemplateID,
 		SoldOut:        m.SoldOut,
 		AvailableCount: m.AvailableCount,
 		Date:           m.Date,
 		CreatedAt:      m.CreatedAt,
 	}
+	if m.Template != nil {
+		r.Title = m.Template.Title
+		r.ImageURL = m.Template.ImageURL
+		r.Description = m.Template.Description
+		r.Category = m.Template.Category.String()
+		r.Type = m.Template.Type.String()
+	}
+	return r
 }
 
 func ToBookingResponse(b *mealdomain.Booking) BookingResponse {

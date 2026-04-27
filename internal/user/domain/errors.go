@@ -12,4 +12,6 @@ var (
 	ErrInvalidCredentials = errors.New("email o contraseña incorrectos")
 	ErrUnauthorized       = errors.New("no autorizado")
 	ErrForbidden          = errors.New("permisos insuficientes")
+	ErrUserDeactivated    = errors.New("usuario desactivado")
+	ErrWrongPassword      = errors.New("contraseña actual incorrecta")
 )

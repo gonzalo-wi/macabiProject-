@@ -18,6 +18,7 @@ func RegisterRoutes(r *gin.Engine, authHandler *AuthHandler, userHandler *UserHa
 	api.Use(AuthMiddleware(tokenPrv))
 	{
 		api.GET("/me", userHandler.Me)
+		api.PATCH("/me/password", userHandler.ChangePassword)
 		api.GET("/users",
 			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
 			userHandler.ListUsers,
@@ -25,6 +26,14 @@ func RegisterRoutes(r *gin.Engine, authHandler *AuthHandler, userHandler *UserHa
 		api.PATCH("/users/:id/role",
 			RequireRole(userdomain.RoleSuperAdmin),
 			userHandler.ChangeRole,
+		)
+		api.PATCH("/users/:id/status",
+			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			userHandler.SetStatus,
+		)
+		api.PUT("/users/:id",
+			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			userHandler.UpdateUser,
 		)
 	}
 }
