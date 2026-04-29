@@ -28,19 +28,37 @@ type Dependencies struct {
 func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	// User infrastructure
 	userRepo := userpersistence.NewUserRepositoryPG(db)
+	inviteRepo := userpersistence.NewUserInvitationRepositoryPG(db)
 	tokenRepo := userpersistence.NewPasswordResetTokenRepositoryPG(db)
 	hasher := usersecurity.NewBcryptHasher()
 	jwtProvider := usersecurity.NewJWTProvider(cfg.JWTSecret, cfg.JWTExpiration)
 	transactor := database.NewGORMTransactor(db)
-	mailer := usermail.NewBrevoPasswordResetMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
+	invitationMailer := usermail.NewBrevoTransactionalMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
+	passwordResetMailer := usermail.NewBrevoPasswordResetMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
 
 	// User use cases
-	registerUC := userusecases.NewRegisterUser(userRepo, hasher)
 	loginUC := userusecases.NewLogin(userRepo, hasher, jwtProvider)
+	acceptInvitationUC := userusecases.NewAcceptInvitation(transactor, userRepo, inviteRepo, hasher)
+	createInvitationUC := userusecases.NewCreateUserInvitation(
+		userRepo,
+		inviteRepo,
+		invitationMailer,
+		cfg.FrontendPublicURL,
+		cfg.InvitationTTL,
+	)
+	listPendingInvitationsUC := userusecases.NewListPendingInvitations(inviteRepo, userRepo)
+	resendInvitationUC := userusecases.NewResendUserInvitation(
+		userRepo,
+		inviteRepo,
+		invitationMailer,
+		cfg.FrontendPublicURL,
+		cfg.InvitationTTL,
+	)
+	revokeInvitationUC := userusecases.NewRevokeUserInvitation(inviteRepo)
 	requestPasswordUC := userusecases.NewRequestPasswordReset(
 		userRepo,
 		tokenRepo,
-		mailer,
+		passwordResetMailer,
 		cfg.FrontendPublicURL,
 		cfg.PasswordResetTTL,
 	)
@@ -53,8 +71,24 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	changePasswordUC := userusecases.NewChangePassword(userRepo, hasher)
 
 	// User handlers
-	authHandler := userhttp.NewAuthHandler(registerUC, loginUC, requestPasswordUC, resetPasswordUC)
-	userHandler := userhttp.NewUserHandler(getCurrentUserUC, changeRoleUC, listUsersUC, setUserStatusUC, updateUserUC, changePasswordUC)
+	authHandler := userhttp.NewAuthHandler(
+		loginUC,
+		acceptInvitationUC,
+		requestPasswordUC,
+		resetPasswordUC,
+	)
+	userHandler := userhttp.NewUserHandler(
+		getCurrentUserUC,
+		changeRoleUC,
+		listUsersUC,
+		setUserStatusUC,
+		updateUserUC,
+		changePasswordUC,
+		createInvitationUC,
+		listPendingInvitationsUC,
+		resendInvitationUC,
+		revokeInvitationUC,
+	)
 
 	// Meal infrastructure
 	mealRepo := mealpersistence.NewMealRepositoryPG(db)

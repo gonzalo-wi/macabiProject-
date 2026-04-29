@@ -23,6 +23,7 @@ type Config struct {
 	BrevoAPIKey       string
 	BrevoEmailFrom    string
 	FrontendPublicURL string
+	InvitationTTL     time.Duration
 	PasswordResetTTL  time.Duration
 }
 
@@ -68,6 +69,13 @@ func Load() *Config {
 		}
 	}
 
+	invTTL := 7 * 24 * time.Hour
+	if v := strings.TrimSpace(os.Getenv("INVITATION_TTL_HOURS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			invTTL = time.Duration(n) * time.Hour
+		}
+	}
+
 	resetTTL := time.Hour
 	if v := strings.TrimSpace(os.Getenv("PASSWORD_RESET_TTL_MINUTES")); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
@@ -90,6 +98,7 @@ func Load() *Config {
 		BrevoAPIKey:       brevoKey,
 		BrevoEmailFrom:    brevoFrom,
 		FrontendPublicURL: strings.TrimSpace(os.Getenv("FRONTEND_PUBLIC_URL")),
+		InvitationTTL:     invTTL,
 		PasswordResetTTL:  resetTTL,
 	}
 }

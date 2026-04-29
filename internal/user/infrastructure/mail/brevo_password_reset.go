@@ -27,22 +27,6 @@ func NewBrevoPasswordResetMailer(apiKey, fromEmail string) *BrevoPasswordResetMa
 	}
 }
 
-type brevoSendEmailRequest struct {
-	Sender      brevoSender        `json:"sender"`
-	To          []brevoRecipient   `json:"to"`
-	Subject     string             `json:"subject"`
-	HTMLContent string             `json:"htmlContent"`
-}
-
-type brevoSender struct {
-	Email string `json:"email"`
-	Name  string `json:"name,omitempty"`
-}
-
-type brevoRecipient struct {
-	Email string `json:"email"`
-}
-
 func (m *BrevoPasswordResetMailer) SendResetLink(ctx context.Context, toEmail, resetURL string) error {
 	toEmail = strings.TrimSpace(strings.ToLower(toEmail))
 	if toEmail == "" {
@@ -55,12 +39,12 @@ func (m *BrevoPasswordResetMailer) SendResetLink(ctx context.Context, toEmail, r
 	body := brevoSendEmailRequest{
 		Sender: brevoSender{
 			Email: m.from,
-			Name:  "Macabi",
+			Name:  brevoSenderDisplayName,
 		},
-		To: []brevoRecipient{{Email: toEmail}},
-		Subject: "Restablecer contraseña",
+		To:          []brevoRecipient{{Email: toEmail}},
+		Subject:     "Restablecer contraseña — Macabi Madrijim",
 		HTMLContent: fmt.Sprintf(
-			`<p>Recibimos una solicitud para restablecer tu contraseña.</p>
+			`<p>Recibimos una solicitud para restablecer tu contraseña en Macabi Madrijim.</p>
 <p><a href="%s">Hacé clic aquí para elegir una nueva contraseña</a></p>
 <p>Si no pediste este cambio, podés ignorar este mensaje. El enlace deja de ser válido tras usarse o al pasar el tiempo indicado.</p>`,
 			resetURL,

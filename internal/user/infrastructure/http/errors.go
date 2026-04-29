@@ -9,11 +9,13 @@ import (
 
 func httpStatus(err error) int {
 	switch {
-	case errors.Is(err, userdomain.ErrUserNotFound):
+	case errors.Is(err, userdomain.ErrUserNotFound),
+		errors.Is(err, userdomain.ErrInvitationNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, userdomain.ErrEmailAlreadyTaken):
 		return http.StatusConflict
-	case errors.Is(err, userdomain.ErrInvalidOrExpiredResetToken),
+	case errors.Is(err, userdomain.ErrInvalidOrExpiredInvitation),
+		errors.Is(err, userdomain.ErrInvalidOrExpiredResetToken),
 		errors.Is(err, userdomain.ErrInvalidEmail),
 		errors.Is(err, userdomain.ErrWeakPassword),
 		errors.Is(err, userdomain.ErrEmptyName),
