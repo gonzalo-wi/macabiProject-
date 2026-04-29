@@ -147,10 +147,6 @@ func (MealModel) TableName() string {
 }
 
 func RunMigrations(db *gorm.DB) error {
-	// Drop tablas dependientes primero para respetar FK, luego recrear
-	if err := db.Migrator().DropTable(&BookingModel{}, &MealModel{}); err != nil {
-		return fmt.Errorf("drop old tables: %w", err)
-	}
 	return db.AutoMigrate(&MealTemplateModel{}, &MealModel{}, &BookingModel{})
 }
 
