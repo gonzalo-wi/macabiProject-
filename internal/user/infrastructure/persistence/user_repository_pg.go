@@ -41,7 +41,7 @@ func (r *UserRepositoryPG) dbx(ctx context.Context) *gorm.DB {
 }
 
 func RunMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(&UserModel{}, &UserInvitationModel{})
+	return db.AutoMigrate(&UserModel{}, &UserInvitationModel{}, &PasswordResetTokenModel{})
 }
 
 func (r *UserRepositoryPG) Save(ctx context.Context, user *userdomain.User) error {

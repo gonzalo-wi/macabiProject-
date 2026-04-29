@@ -15,6 +15,7 @@ func httpStatus(err error) int {
 	case errors.Is(err, userdomain.ErrEmailAlreadyTaken):
 		return http.StatusConflict
 	case errors.Is(err, userdomain.ErrInvalidOrExpiredInvitation),
+		errors.Is(err, userdomain.ErrInvalidOrExpiredResetToken),
 		errors.Is(err, userdomain.ErrInvalidEmail),
 		errors.Is(err, userdomain.ErrWeakPassword),
 		errors.Is(err, userdomain.ErrEmptyName),

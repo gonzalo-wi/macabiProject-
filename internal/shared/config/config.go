@@ -12,18 +12,19 @@ import (
 )
 
 type Config struct {
-	DBHost              string
-	DBPort              string
-	DBUser              string
-	DBPassword          string
-	DBName              string
-	Port                string
-	JWTSecret           string
-	JWTExpiration       time.Duration
-	BrevoAPIKey         string
-	BrevoEmailFrom      string
-	FrontendPublicURL   string
-	InvitationTTL       time.Duration
+	DBHost            string
+	DBPort            string
+	DBUser            string
+	DBPassword        string
+	DBName            string
+	Port              string
+	JWTSecret         string
+	JWTExpiration     time.Duration
+	BrevoAPIKey       string
+	BrevoEmailFrom    string
+	FrontendPublicURL string
+	InvitationTTL     time.Duration
+	PasswordResetTTL  time.Duration
 }
 
 func (c *Config) DSN() string {
@@ -75,6 +76,13 @@ func Load() *Config {
 		}
 	}
 
+	resetTTL := time.Hour
+	if v := strings.TrimSpace(os.Getenv("PASSWORD_RESET_TTL_MINUTES")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			resetTTL = time.Duration(n) * time.Minute
+		}
+	}
+
 	brevoKey := firstNonEmpty(os.Getenv("BREVO_API_KEY"), os.Getenv("brevo_api_key"))
 	brevoFrom := firstNonEmpty(os.Getenv("BREVO_EMAIL_FROM"), os.Getenv("brevo_email_from"))
 
@@ -91,6 +99,7 @@ func Load() *Config {
 		BrevoEmailFrom:    brevoFrom,
 		FrontendPublicURL: strings.TrimSpace(os.Getenv("FRONTEND_PUBLIC_URL")),
 		InvitationTTL:     invTTL,
+		PasswordResetTTL:  resetTTL,
 	}
 }
 

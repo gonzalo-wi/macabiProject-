@@ -29,10 +29,12 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	// User infrastructure
 	userRepo := userpersistence.NewUserRepositoryPG(db)
 	inviteRepo := userpersistence.NewUserInvitationRepositoryPG(db)
+	tokenRepo := userpersistence.NewPasswordResetTokenRepositoryPG(db)
 	hasher := usersecurity.NewBcryptHasher()
 	jwtProvider := usersecurity.NewJWTProvider(cfg.JWTSecret, cfg.JWTExpiration)
 	transactor := database.NewGORMTransactor(db)
 	invitationMailer := usermail.NewBrevoTransactionalMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
+	passwordResetMailer := usermail.NewBrevoPasswordResetMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
 
 	// User use cases
 	loginUC := userusecases.NewLogin(userRepo, hasher, jwtProvider)
@@ -53,6 +55,14 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		cfg.InvitationTTL,
 	)
 	revokeInvitationUC := userusecases.NewRevokeUserInvitation(inviteRepo)
+	requestPasswordUC := userusecases.NewRequestPasswordReset(
+		userRepo,
+		tokenRepo,
+		passwordResetMailer,
+		cfg.FrontendPublicURL,
+		cfg.PasswordResetTTL,
+	)
+	resetPasswordUC := userusecases.NewResetPassword(transactor, userRepo, tokenRepo, hasher)
 	getCurrentUserUC := userusecases.NewGetCurrentUser(userRepo)
 	changeRoleUC := userusecases.NewChangeRole(userRepo)
 	listUsersUC := userusecases.NewListUsers(userRepo)
@@ -61,7 +71,12 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	changePasswordUC := userusecases.NewChangePassword(userRepo, hasher)
 
 	// User handlers
-	authHandler := userhttp.NewAuthHandler(loginUC, acceptInvitationUC)
+	authHandler := userhttp.NewAuthHandler(
+		loginUC,
+		acceptInvitationUC,
+		requestPasswordUC,
+		resetPasswordUC,
+	)
 	userHandler := userhttp.NewUserHandler(
 		getCurrentUserUC,
 		changeRoleUC,
