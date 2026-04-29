@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"macabi-back/internal/shared/database"
 	"macabi-back/internal/shared/pagination"
 	userdomain "macabi-back/internal/user/domain"
 
@@ -35,13 +36,17 @@ func NewUserRepositoryPG(db *gorm.DB) *UserRepositoryPG {
 	return &UserRepositoryPG{db: db}
 }
 
+func (r *UserRepositoryPG) dbx(ctx context.Context) *gorm.DB {
+	return database.TxFromCtx(ctx, r.db).WithContext(ctx)
+}
+
 func RunMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(&UserModel{})
+	return db.AutoMigrate(&UserModel{}, &UserInvitationModel{})
 }
 
 func (r *UserRepositoryPG) Save(ctx context.Context, user *userdomain.User) error {
 	model := toModel(user)
-	if err := r.db.WithContext(ctx).Create(&model).Error; err != nil {
+	if err := r.dbx(ctx).Create(&model).Error; err != nil {
 		return fmt.Errorf("save user: %w", err)
 	}
 	user.ID = model.ID
@@ -52,7 +57,7 @@ func (r *UserRepositoryPG) Save(ctx context.Context, user *userdomain.User) erro
 
 func (r *UserRepositoryPG) FindByEmail(ctx context.Context, email string) (*userdomain.User, error) {
 	var model UserModel
-	err := r.db.WithContext(ctx).Where("email = ?", email).First(&model).Error
+	err := r.dbx(ctx).Where("email = ?", email).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, userdomain.ErrUserNotFound
@@ -64,7 +69,7 @@ func (r *UserRepositoryPG) FindByEmail(ctx context.Context, email string) (*user
 
 func (r *UserRepositoryPG) FindByID(ctx context.Context, id string) (*userdomain.User, error) {
 	var model UserModel
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&model).Error
+	err := r.dbx(ctx).Where("id = ?", id).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, userdomain.ErrUserNotFound
@@ -75,7 +80,7 @@ func (r *UserRepositoryPG) FindByID(ctx context.Context, id string) (*userdomain
 }
 
 func (r *UserRepositoryPG) Update(ctx context.Context, user *userdomain.User) error {
-	err := r.db.WithContext(ctx).Model(&UserModel{}).Where("id = ?", user.ID).Updates(map[string]interface{}{
+	err := r.dbx(ctx).Model(&UserModel{}).Where("id = ?", user.ID).Updates(map[string]interface{}{
 		"name":     user.Name,
 		"email":    user.Email,
 		"role":     string(user.Role),
@@ -90,12 +95,12 @@ func (r *UserRepositoryPG) Update(ctx context.Context, user *userdomain.User) er
 
 func (r *UserRepositoryPG) FindAll(ctx context.Context, params pagination.Params) ([]userdomain.User, int64, error) {
 	var total int64
-	if err := r.db.WithContext(ctx).Model(&UserModel{}).Count(&total).Error; err != nil {
+	if err := r.dbx(ctx).Model(&UserModel{}).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("count users: %w", err)
 	}
 
 	var models []UserModel
-	err := r.db.WithContext(ctx).
+	err := r.dbx(ctx).
 		Order("created_at DESC").
 		Offset(params.Offset()).
 		Limit(params.PageSize).

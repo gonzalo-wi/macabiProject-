@@ -18,6 +18,11 @@ type User struct {
 }
 
 func NewUser(name, email, hashedPassword string) (*User, error) {
+	return NewUserWithRole(name, email, hashedPassword, RoleUser)
+}
+
+// NewUserWithRole validates name/email and builds a user with the given role (e.g. from an invitation).
+func NewUserWithRole(name, email, hashedPassword string, role Role) (*User, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil, ErrEmptyName
@@ -26,11 +31,14 @@ func NewUser(name, email, hashedPassword string) (*User, error) {
 	if !isValidEmail(email) {
 		return nil, ErrInvalidEmail
 	}
+	if !validRoles[role] {
+		return nil, ErrInvalidRole
+	}
 	return &User{
 		Name:     name,
 		Email:    email,
 		Password: hashedPassword,
-		Role:     RoleUser,
+		Role:     role,
 		Active:   true,
 	}, nil
 }

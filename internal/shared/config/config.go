@@ -4,20 +4,26 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	DBHost         string
-	DBPort         string
-	DBUser         string
-	DBPassword     string
-	DBName         string
-	Port           string
-	JWTSecret      string
-	JWTExpiration  time.Duration
+	DBHost              string
+	DBPort              string
+	DBUser              string
+	DBPassword          string
+	DBName              string
+	Port                string
+	JWTSecret           string
+	JWTExpiration       time.Duration
+	BrevoAPIKey         string
+	BrevoEmailFrom      string
+	FrontendPublicURL   string
+	InvitationTTL       time.Duration
 }
 
 func (c *Config) DSN() string {
@@ -27,12 +33,15 @@ func (c *Config) DSN() string {
 
 func (c *Config) Validate() error {
 	required := map[string]string{
-		"DB_HOST":     c.DBHost,
-		"DB_PORT":     c.DBPort,
-		"DB_USER":     c.DBUser,
-		"DB_PASSWORD": c.DBPassword,
-		"DB_NAME":     c.DBName,
-		"JWT_SECRET":  c.JWTSecret,
+		"DB_HOST":             c.DBHost,
+		"DB_PORT":             c.DBPort,
+		"DB_USER":             c.DBUser,
+		"DB_PASSWORD":         c.DBPassword,
+		"DB_NAME":             c.DBName,
+		"JWT_SECRET":          c.JWTSecret,
+		"BREVO_API_KEY":       c.BrevoAPIKey,
+		"BREVO_EMAIL_FROM":    c.BrevoEmailFrom,
+		"FRONTEND_PUBLIC_URL": c.FrontendPublicURL,
 	}
 	for key, val := range required {
 		if val == "" {
@@ -59,14 +68,35 @@ func Load() *Config {
 		}
 	}
 
-	return &Config{
-		DBHost:        os.Getenv("DB_HOST"),
-		DBPort:        os.Getenv("DB_PORT"),
-		DBUser:        os.Getenv("DB_USER"),
-		DBPassword:    os.Getenv("DB_PASSWORD"),
-		DBName:        os.Getenv("DB_NAME"),
-		Port:          port,
-		JWTSecret:     os.Getenv("JWT_SECRET"),
-		JWTExpiration: jwtExpiration,
+	invTTL := 7 * 24 * time.Hour
+	if v := strings.TrimSpace(os.Getenv("INVITATION_TTL_HOURS")); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			invTTL = time.Duration(n) * time.Hour
+		}
 	}
+
+	brevoKey := firstNonEmpty(os.Getenv("BREVO_API_KEY"), os.Getenv("brevo_api_key"))
+	brevoFrom := firstNonEmpty(os.Getenv("BREVO_EMAIL_FROM"), os.Getenv("brevo_email_from"))
+
+	return &Config{
+		DBHost:            os.Getenv("DB_HOST"),
+		DBPort:            os.Getenv("DB_PORT"),
+		DBUser:            os.Getenv("DB_USER"),
+		DBPassword:        os.Getenv("DB_PASSWORD"),
+		DBName:            os.Getenv("DB_NAME"),
+		Port:              port,
+		JWTSecret:         os.Getenv("JWT_SECRET"),
+		JWTExpiration:     jwtExpiration,
+		BrevoAPIKey:       brevoKey,
+		BrevoEmailFrom:    brevoFrom,
+		FrontendPublicURL: strings.TrimSpace(os.Getenv("FRONTEND_PUBLIC_URL")),
+		InvitationTTL:     invTTL,
+	}
+}
+
+func firstNonEmpty(a, b string) string {
+	if strings.TrimSpace(a) != "" {
+		return strings.TrimSpace(a)
+	}
+	return strings.TrimSpace(b)
 }

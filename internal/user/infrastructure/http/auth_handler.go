@@ -3,39 +3,31 @@ package userhttp
 import (
 	"net/http"
 
-	userusecases "macabi-back/internal/user/application/usecases"
 	sharederrors "macabi-back/internal/shared/errors"
+	userusecases "macabi-back/internal/user/application/usecases"
 
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
-	registerUC *userusecases.RegisterUser
-	loginUC    *userusecases.Login
+	loginUC     *userusecases.Login
+	acceptInvUC *userusecases.AcceptInvitation
 }
 
-func NewAuthHandler(registerUC *userusecases.RegisterUser, loginUC *userusecases.Login) *AuthHandler {
-	return &AuthHandler{registerUC: registerUC, loginUC: loginUC}
+func NewAuthHandler(
+	loginUC *userusecases.Login,
+	acceptInvUC *userusecases.AcceptInvitation,
+) *AuthHandler {
+	return &AuthHandler{
+		loginUC:     loginUC,
+		acceptInvUC: acceptInvUC,
+	}
 }
 
-func (h *AuthHandler) Register(c *gin.Context) {
-	var req RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
-		return
-	}
-
-	user, err := h.registerUC.Execute(c.Request.Context(), userusecases.RegisterInput{
-		Name:     req.Name,
-		Email:    req.Email,
-		Password: req.Password,
-	})
-	if err != nil {
-		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
-		return
-	}
-
-	c.JSON(http.StatusCreated, ToUserResponse(user))
+func (h *AuthHandler) RegisterDisabled(c *gin.Context) {
+	c.JSON(http.StatusForbidden, sharederrors.NewErrorResponse(
+		"El registro público está deshabilitado. Solicitá una invitación a un administrador.",
+	))
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -58,4 +50,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Token: output.Token,
 		User:  ToUserResponse(output.User),
 	})
+}
+
+func (h *AuthHandler) AcceptInvitation(c *gin.Context) {
+	var req AcceptInvitationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+
+	err := h.acceptInvUC.Execute(c.Request.Context(), req.Token, req.Password)
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Cuenta creada. Ya podés iniciar sesión."})
 }

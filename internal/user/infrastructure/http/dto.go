@@ -35,6 +35,30 @@ type ChangePasswordRequest struct {
 	NewPassword     string `json:"new_password" binding:"required"`
 }
 
+type AcceptInvitationRequest struct {
+	Token    string `json:"token" binding:"required"`
+	Password string `json:"password" binding:"required,min=8"`
+}
+
+type CreateUserInvitationRequest struct {
+	Email string `json:"email" binding:"required,email"`
+	Name  string `json:"name" binding:"required"`
+	Role  string `json:"role"`
+}
+
+type PendingInvitationResponse struct {
+	ID        string    `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	Role      string    `json:"role"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ListPendingInvitationsResponse struct {
+	Data []PendingInvitationResponse `json:"data"`
+}
+
 type UserResponse struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`

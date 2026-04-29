@@ -9,6 +9,7 @@ import (
 	userports "macabi-back/internal/user/application/ports"
 	userusecases "macabi-back/internal/user/application/usecases"
 	userhttp "macabi-back/internal/user/infrastructure/http"
+	usermail "macabi-back/internal/user/infrastructure/mail"
 	userpersistence "macabi-back/internal/user/infrastructure/persistence"
 	usersecurity "macabi-back/internal/user/infrastructure/security"
 
@@ -27,12 +28,31 @@ type Dependencies struct {
 func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	// User infrastructure
 	userRepo := userpersistence.NewUserRepositoryPG(db)
+	inviteRepo := userpersistence.NewUserInvitationRepositoryPG(db)
 	hasher := usersecurity.NewBcryptHasher()
 	jwtProvider := usersecurity.NewJWTProvider(cfg.JWTSecret, cfg.JWTExpiration)
+	transactor := database.NewGORMTransactor(db)
+	invitationMailer := usermail.NewBrevoTransactionalMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
 
 	// User use cases
-	registerUC := userusecases.NewRegisterUser(userRepo, hasher)
 	loginUC := userusecases.NewLogin(userRepo, hasher, jwtProvider)
+	acceptInvitationUC := userusecases.NewAcceptInvitation(transactor, userRepo, inviteRepo, hasher)
+	createInvitationUC := userusecases.NewCreateUserInvitation(
+		userRepo,
+		inviteRepo,
+		invitationMailer,
+		cfg.FrontendPublicURL,
+		cfg.InvitationTTL,
+	)
+	listPendingInvitationsUC := userusecases.NewListPendingInvitations(inviteRepo, userRepo)
+	resendInvitationUC := userusecases.NewResendUserInvitation(
+		userRepo,
+		inviteRepo,
+		invitationMailer,
+		cfg.FrontendPublicURL,
+		cfg.InvitationTTL,
+	)
+	revokeInvitationUC := userusecases.NewRevokeUserInvitation(inviteRepo)
 	getCurrentUserUC := userusecases.NewGetCurrentUser(userRepo)
 	changeRoleUC := userusecases.NewChangeRole(userRepo)
 	listUsersUC := userusecases.NewListUsers(userRepo)
@@ -41,14 +61,24 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	changePasswordUC := userusecases.NewChangePassword(userRepo, hasher)
 
 	// User handlers
-	authHandler := userhttp.NewAuthHandler(registerUC, loginUC)
-	userHandler := userhttp.NewUserHandler(getCurrentUserUC, changeRoleUC, listUsersUC, setUserStatusUC, updateUserUC, changePasswordUC)
+	authHandler := userhttp.NewAuthHandler(loginUC, acceptInvitationUC)
+	userHandler := userhttp.NewUserHandler(
+		getCurrentUserUC,
+		changeRoleUC,
+		listUsersUC,
+		setUserStatusUC,
+		updateUserUC,
+		changePasswordUC,
+		createInvitationUC,
+		listPendingInvitationsUC,
+		resendInvitationUC,
+		revokeInvitationUC,
+	)
 
 	// Meal infrastructure
 	mealRepo := mealpersistence.NewMealRepositoryPG(db)
 	templateRepo := mealpersistence.NewMealTemplateRepositoryPG(db)
 	bookingRepo := mealpersistence.NewBookingRepositoryPG(db)
-	transactor := database.NewGORMTransactor(db)
 
 	// Meal use cases
 	createMealTemplateUC := mealusecases.NewCreateMealTemplate(templateRepo)
