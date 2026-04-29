@@ -9,6 +9,7 @@ import (
 	userports "macabi-back/internal/user/application/ports"
 	userusecases "macabi-back/internal/user/application/usecases"
 	userhttp "macabi-back/internal/user/infrastructure/http"
+	usermail "macabi-back/internal/user/infrastructure/mail"
 	userpersistence "macabi-back/internal/user/infrastructure/persistence"
 	usersecurity "macabi-back/internal/user/infrastructure/security"
 
@@ -27,12 +28,23 @@ type Dependencies struct {
 func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	// User infrastructure
 	userRepo := userpersistence.NewUserRepositoryPG(db)
+	tokenRepo := userpersistence.NewPasswordResetTokenRepositoryPG(db)
 	hasher := usersecurity.NewBcryptHasher()
 	jwtProvider := usersecurity.NewJWTProvider(cfg.JWTSecret, cfg.JWTExpiration)
+	transactor := database.NewGORMTransactor(db)
+	mailer := usermail.NewBrevoPasswordResetMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
 
 	// User use cases
 	registerUC := userusecases.NewRegisterUser(userRepo, hasher)
 	loginUC := userusecases.NewLogin(userRepo, hasher, jwtProvider)
+	requestPasswordUC := userusecases.NewRequestPasswordReset(
+		userRepo,
+		tokenRepo,
+		mailer,
+		cfg.FrontendPublicURL,
+		cfg.PasswordResetTTL,
+	)
+	resetPasswordUC := userusecases.NewResetPassword(transactor, userRepo, tokenRepo, hasher)
 	getCurrentUserUC := userusecases.NewGetCurrentUser(userRepo)
 	changeRoleUC := userusecases.NewChangeRole(userRepo)
 	listUsersUC := userusecases.NewListUsers(userRepo)
@@ -41,14 +53,13 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	changePasswordUC := userusecases.NewChangePassword(userRepo, hasher)
 
 	// User handlers
-	authHandler := userhttp.NewAuthHandler(registerUC, loginUC)
+	authHandler := userhttp.NewAuthHandler(registerUC, loginUC, requestPasswordUC, resetPasswordUC)
 	userHandler := userhttp.NewUserHandler(getCurrentUserUC, changeRoleUC, listUsersUC, setUserStatusUC, updateUserUC, changePasswordUC)
 
 	// Meal infrastructure
 	mealRepo := mealpersistence.NewMealRepositoryPG(db)
 	templateRepo := mealpersistence.NewMealTemplateRepositoryPG(db)
 	bookingRepo := mealpersistence.NewBookingRepositoryPG(db)
-	transactor := database.NewGORMTransactor(db)
 
 	// Meal use cases
 	createMealTemplateUC := mealusecases.NewCreateMealTemplate(templateRepo)

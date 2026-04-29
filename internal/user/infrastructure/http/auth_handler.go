@@ -1,21 +1,37 @@
 package userhttp
 
 import (
+	"errors"
 	"net/http"
 
-	userusecases "macabi-back/internal/user/application/usecases"
 	sharederrors "macabi-back/internal/shared/errors"
+	userusecases "macabi-back/internal/user/application/usecases"
+	userdomain "macabi-back/internal/user/domain"
 
 	"github.com/gin-gonic/gin"
 )
 
+const forgotPasswordSuccessMessage = "Si el email está registrado, te enviamos un enlace para restablecer la contraseña."
+
 type AuthHandler struct {
-	registerUC *userusecases.RegisterUser
-	loginUC    *userusecases.Login
+	registerUC        *userusecases.RegisterUser
+	loginUC           *userusecases.Login
+	requestPasswordUC *userusecases.RequestPasswordReset
+	resetPasswordUC   *userusecases.ResetPassword
 }
 
-func NewAuthHandler(registerUC *userusecases.RegisterUser, loginUC *userusecases.Login) *AuthHandler {
-	return &AuthHandler{registerUC: registerUC, loginUC: loginUC}
+func NewAuthHandler(
+	registerUC *userusecases.RegisterUser,
+	loginUC *userusecases.Login,
+	requestPasswordUC *userusecases.RequestPasswordReset,
+	resetPasswordUC *userusecases.ResetPassword,
+) *AuthHandler {
+	return &AuthHandler{
+		registerUC:        registerUC,
+		loginUC:           loginUC,
+		requestPasswordUC: requestPasswordUC,
+		resetPasswordUC:   resetPasswordUC,
+	}
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -58,4 +74,40 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Token: output.Token,
 		User:  ToUserResponse(output.User),
 	})
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	var req ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+
+	err := h.requestPasswordUC.Execute(c.Request.Context(), req.Email)
+	if err != nil {
+		if errors.Is(err, userdomain.ErrInvalidEmail) {
+			c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": forgotPasswordSuccessMessage})
+}
+
+func (h *AuthHandler) ConfirmPasswordReset(c *gin.Context) {
+	var req ConfirmPasswordResetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+
+	err := h.resetPasswordUC.Execute(c.Request.Context(), req.Token, req.NewPassword)
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Contraseña actualizada. Ya podés iniciar sesión."})
 }

@@ -13,7 +13,8 @@ func httpStatus(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, userdomain.ErrEmailAlreadyTaken):
 		return http.StatusConflict
-	case errors.Is(err, userdomain.ErrInvalidEmail),
+	case errors.Is(err, userdomain.ErrInvalidOrExpiredResetToken),
+		errors.Is(err, userdomain.ErrInvalidEmail),
 		errors.Is(err, userdomain.ErrWeakPassword),
 		errors.Is(err, userdomain.ErrEmptyName),
 		errors.Is(err, userdomain.ErrInvalidRole):
