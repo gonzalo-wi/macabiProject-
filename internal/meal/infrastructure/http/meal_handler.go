@@ -30,6 +30,7 @@ func (h *MealHandler) Create(c *gin.Context) {
 	}
 
 	meal, err := h.createMealUC.Execute(c.Request.Context(), mealusecases.CreateMealInput{
+		ProjectID:      req.ProjectID,
 		TemplateID:     req.TemplateID,
 		AvailableCount: req.AvailableCount,
 		Date:           req.Date,
@@ -59,7 +60,10 @@ func (h *MealHandler) ListByDate(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "50"))
 	params := pagination.NewParams(page, pageSize)
 
-	result, err := h.listAvailableMealsUC.Execute(c.Request.Context(), date, params)
+	result, err := h.listAvailableMealsUC.Execute(c.Request.Context(), mealusecases.ListAvailableMealsInput{
+		Date:      date,
+		ProjectID: c.Query("project_id"),
+	}, params)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
 		return

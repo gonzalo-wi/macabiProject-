@@ -17,8 +17,13 @@ func NewGetDailySummary(repo mealports.BookingRepository) *GetDailySummary {
 	return &GetDailySummary{repo: repo}
 }
 
-func (uc *GetDailySummary) Execute(ctx context.Context, date time.Time) (*mealdomain.DailySummary, error) {
-	summary, err := uc.repo.GetDailySummary(ctx, date)
+type GetDailySummaryInput struct {
+	Date      time.Time
+	ProjectID string // opcional; vacío = todos los proyectos
+}
+
+func (uc *GetDailySummary) Execute(ctx context.Context, input GetDailySummaryInput) (*mealdomain.DailySummary, error) {
+	summary, err := uc.repo.GetDailySummary(ctx, input.Date, input.ProjectID)
 	if err != nil {
 		return nil, fmt.Errorf("get daily summary: %w", err)
 	}

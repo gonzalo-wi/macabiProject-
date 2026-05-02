@@ -13,8 +13,15 @@ type MealDailySummary struct {
 	Persons  []PersonSummary
 }
 
-type DailySummary struct {
-	Date          time.Time
+type ProjectDailySummary struct {
+	ProjectID     string
+	ProjectName   string
 	TotalMenus    int
 	MealSummaries []MealDailySummary
+}
+
+type DailySummary struct {
+	Date       time.Time
+	TotalMenus int
+	Projects   []ProjectDailySummary
 }

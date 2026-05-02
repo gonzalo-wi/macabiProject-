@@ -4,6 +4,9 @@ import (
 	mealusecases "macabi-back/internal/meal/application/usecases"
 	mealhttp "macabi-back/internal/meal/infrastructure/http"
 	mealpersistence "macabi-back/internal/meal/infrastructure/persistence"
+	projectusecases "macabi-back/internal/project/application/usecases"
+	projecthttp "macabi-back/internal/project/infrastructure/http"
+	projectpersistence "macabi-back/internal/project/infrastructure/persistence"
 	"macabi-back/internal/shared/config"
 	"macabi-back/internal/shared/database"
 	userports "macabi-back/internal/user/application/ports"
@@ -22,6 +25,7 @@ type Dependencies struct {
 	MealHandler         *mealhttp.MealHandler
 	BookingHandler      *mealhttp.BookingHandler
 	MealTemplateHandler *mealhttp.MealTemplateHandler
+	ProjectHandler      *projecthttp.ProjectHandler
 	TokenPrv            userports.TokenProvider
 }
 
@@ -107,11 +111,26 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	cancelBookingUC := mealusecases.NewCancelBooking(bookingRepo, mealRepo, transactor)
 	listMyBookingsUC := mealusecases.NewListMyBookings(bookingRepo)
 	getDailySummaryUC := mealusecases.NewGetDailySummary(bookingRepo)
+	addGarnishOptionUC := mealusecases.NewAddGarnishOption(templateRepo)
+	removeGarnishOptionUC := mealusecases.NewRemoveGarnishOption(templateRepo)
 
 	// Meal handlers
 	mealHandler := mealhttp.NewMealHandler(createMealUC, listAvailableMealsUC, deleteMealUC)
 	bookingHandler := mealhttp.NewBookingHandler(bookMealUC, cancelBookingUC, listMyBookingsUC, getDailySummaryUC)
-	templateHandler := mealhttp.NewMealTemplateHandler(createMealTemplateUC, listMealTemplatesUC, updateMealTemplateUC, deleteMealTemplateUC)
+	templateHandler := mealhttp.NewMealTemplateHandler(createMealTemplateUC, listMealTemplatesUC, updateMealTemplateUC, deleteMealTemplateUC, addGarnishOptionUC, removeGarnishOptionUC)
+
+	// Project infrastructure
+	projectRepo := projectpersistence.NewProjectRepositoryPG(db)
+
+	// Project use cases
+	createProjectUC := projectusecases.NewCreateProject(projectRepo)
+	listProjectsUC := projectusecases.NewListProjects(projectRepo)
+	getProjectUC := projectusecases.NewGetProject(projectRepo)
+	updateProjectUC := projectusecases.NewUpdateProject(projectRepo)
+	deleteProjectUC := projectusecases.NewDeleteProject(projectRepo)
+
+	// Project handler
+	projectHandler := projecthttp.NewProjectHandler(createProjectUC, listProjectsUC, getProjectUC, updateProjectUC, deleteProjectUC)
 
 	return &Dependencies{
 		AuthHandler:         authHandler,
@@ -119,6 +138,7 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		MealHandler:         mealHandler,
 		BookingHandler:      bookingHandler,
 		MealTemplateHandler: templateHandler,
+		ProjectHandler:      projectHandler,
 		TokenPrv:            jwtProvider,
 	}
 }

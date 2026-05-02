@@ -26,6 +26,15 @@ func RegisterRoutes(r *gin.Engine, mealHandler *MealHandler, bookingHandler *Boo
 			userhttp.RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
 			templateHandler.Delete,
 		)
+		// Guarniciones de un template
+		api.POST("/meal-templates/:id/garnish-options",
+			userhttp.RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			templateHandler.AddGarnishOption,
+		)
+		api.DELETE("/meal-templates/:id/garnish-options/:garnishId",
+			userhttp.RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			templateHandler.RemoveGarnishOption,
+		)
 
 		// Meals (asignación de template a fecha + cantidad)
 		api.GET("/meals", mealHandler.ListByDate)

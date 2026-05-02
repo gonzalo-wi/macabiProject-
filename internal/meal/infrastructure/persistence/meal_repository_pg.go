@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	mealports "macabi-back/internal/meal/application/ports"
 	mealdomain "macabi-back/internal/meal/domain"
 	"macabi-back/internal/shared/database"
 	"macabi-back/internal/shared/pagination"
@@ -13,17 +14,30 @@ import (
 	"gorm.io/gorm"
 )
 
+// ── GarnishOption ───────────────────────────────────────────────────────────
+
+type GarnishOptionModel struct {
+	ID         string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	TemplateID string `gorm:"type:uuid;not null;index"`
+	Name       string `gorm:"not null"`
+}
+
+func (GarnishOptionModel) TableName() string {
+	return "garnish_options"
+}
+
 // ── MealTemplate ────────────────────────────────────────────────────────────
 
 type MealTemplateModel struct {
-	ID          string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Title       string `gorm:"not null"`
-	ImageURL    string
-	Description string
-	Category    string `gorm:"not null"`
-	Type        string `gorm:"not null"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID             string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Title          string `gorm:"not null"`
+	ImageURL       string
+	Description    string
+	Category       string               `gorm:"not null"`
+	Type           string               `gorm:"not null"`
+	GarnishOptions []GarnishOptionModel `gorm:"foreignKey:TemplateID"`
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 func (MealTemplateModel) TableName() string {
@@ -51,7 +65,7 @@ func (r *MealTemplateRepositoryPG) Save(ctx context.Context, tmpl *mealdomain.Me
 
 func (r *MealTemplateRepositoryPG) FindByID(ctx context.Context, id string) (*mealdomain.MealTemplate, error) {
 	var model MealTemplateModel
-	err := r.db.WithContext(ctx).Where("id = ?", id).First(&model).Error
+	err := r.db.WithContext(ctx).Preload("GarnishOptions").Where("id = ?", id).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, mealdomain.ErrTemplateNotFound
@@ -69,6 +83,7 @@ func (r *MealTemplateRepositoryPG) FindAll(ctx context.Context, params paginatio
 
 	var models []MealTemplateModel
 	err := r.db.WithContext(ctx).
+		Preload("GarnishOptions").
 		Order("title ASC").
 		Offset(params.Offset()).
 		Limit(params.PageSize).
@@ -105,6 +120,36 @@ func (r *MealTemplateRepositoryPG) Update(ctx context.Context, tmpl *mealdomain.
 	return nil
 }
 
+func (r *MealTemplateRepositoryPG) SaveGarnishOption(ctx context.Context, option *mealdomain.GarnishOption) error {
+	model := GarnishOptionModel{
+		TemplateID: option.TemplateID,
+		Name:       option.Name,
+	}
+	if err := r.db.WithContext(ctx).Create(&model).Error; err != nil {
+		return fmt.Errorf("save garnish option: %w", err)
+	}
+	option.ID = model.ID
+	return nil
+}
+
+func (r *MealTemplateRepositoryPG) FindGarnishOptionByID(ctx context.Context, id string) (*mealdomain.GarnishOption, error) {
+	var model GarnishOptionModel
+	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&model).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, mealdomain.ErrGarnishNotFound
+		}
+		return nil, fmt.Errorf("find garnish option by id: %w", err)
+	}
+	return &mealdomain.GarnishOption{ID: model.ID, TemplateID: model.TemplateID, Name: model.Name}, nil
+}
+
+func (r *MealTemplateRepositoryPG) DeleteGarnishOption(ctx context.Context, id string) error {
+	if err := r.db.WithContext(ctx).Where("id = ?", id).Delete(&GarnishOptionModel{}).Error; err != nil {
+		return fmt.Errorf("delete garnish option: %w", err)
+	}
+	return nil
+}
+
 func toMealTemplateModel(tmpl *mealdomain.MealTemplate) MealTemplateModel {
 	return MealTemplateModel{
 		ID:          tmpl.ID,
@@ -117,15 +162,20 @@ func toMealTemplateModel(tmpl *mealdomain.MealTemplate) MealTemplateModel {
 }
 
 func toDomainMealTemplate(model *MealTemplateModel) *mealdomain.MealTemplate {
+	garnishOptions := make([]mealdomain.GarnishOption, len(model.GarnishOptions))
+	for i, g := range model.GarnishOptions {
+		garnishOptions[i] = mealdomain.GarnishOption{ID: g.ID, TemplateID: g.TemplateID, Name: g.Name}
+	}
 	return &mealdomain.MealTemplate{
-		ID:          model.ID,
-		Title:       model.Title,
-		ImageURL:    model.ImageURL,
-		Description: model.Description,
-		Category:    mealdomain.Category(model.Category),
-		Type:        mealdomain.MealType(model.Type),
-		CreatedAt:   model.CreatedAt,
-		UpdatedAt:   model.UpdatedAt,
+		ID:             model.ID,
+		Title:          model.Title,
+		ImageURL:       model.ImageURL,
+		Description:    model.Description,
+		Category:       mealdomain.Category(model.Category),
+		Type:           mealdomain.MealType(model.Type),
+		GarnishOptions: garnishOptions,
+		CreatedAt:      model.CreatedAt,
+		UpdatedAt:      model.UpdatedAt,
 	}
 }
 
@@ -133,6 +183,7 @@ func toDomainMealTemplate(model *MealTemplateModel) *mealdomain.MealTemplate {
 
 type MealModel struct {
 	ID             string            `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	ProjectID      string            `gorm:"type:uuid;not null;index"`
 	TemplateID     string            `gorm:"type:uuid;not null"`
 	Template       MealTemplateModel `gorm:"foreignKey:TemplateID"`
 	SoldOut        bool              `gorm:"not null;default:false"`
@@ -147,7 +198,20 @@ func (MealModel) TableName() string {
 }
 
 func RunMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(&MealTemplateModel{}, &MealModel{}, &BookingModel{})
+	truncateSQL := `
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'bookings') THEN
+    TRUNCATE TABLE bookings RESTART IDENTITY CASCADE;
+  END IF;
+  IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'meals') THEN
+    TRUNCATE TABLE meals RESTART IDENTITY CASCADE;
+  END IF;
+END $$;`
+	if err := db.Exec(truncateSQL).Error; err != nil {
+		return fmt.Errorf("truncate meals/bookings before migration: %w", err)
+	}
+	return db.AutoMigrate(&GarnishOptionModel{}, &MealTemplateModel{}, &MealModel{}, &BookingModel{})
 }
 
 type MealRepositoryPG struct {
@@ -175,7 +239,7 @@ func (r *MealRepositoryPG) Save(ctx context.Context, meal *mealdomain.Meal) erro
 
 func (r *MealRepositoryPG) FindByID(ctx context.Context, id string) (*mealdomain.Meal, error) {
 	var model MealModel
-	err := r.tx(ctx).Preload("Template").Where("id = ?", id).First(&model).Error
+	err := r.tx(ctx).Preload("Template").Preload("Template.GarnishOptions").Where("id = ?", id).First(&model).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, mealdomain.ErrMealNotFound
@@ -185,21 +249,28 @@ func (r *MealRepositoryPG) FindByID(ctx context.Context, id string) (*mealdomain
 	return toDomainMeal(&model), nil
 }
 
-func (r *MealRepositoryPG) FindByDate(ctx context.Context, date time.Time, params pagination.Params) ([]mealdomain.Meal, int64, error) {
+func (r *MealRepositoryPG) FindByDate(ctx context.Context, date time.Time, filter mealports.MealFilter, params pagination.Params) ([]mealdomain.Meal, int64, error) {
 	start := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	end := start.Add(24 * time.Hour)
 
+	q := r.tx(ctx).Model(&MealModel{}).Where("date >= ? AND date < ?", start, end)
+	if filter.ProjectID != "" {
+		q = q.Where("project_id = ?", filter.ProjectID)
+	}
+
 	var total int64
-	if err := r.tx(ctx).Model(&MealModel{}).
-		Where("date >= ? AND date < ?", start, end).
-		Count(&total).Error; err != nil {
+	if err := q.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("count meals: %w", err)
 	}
 
 	var models []MealModel
-	err := r.tx(ctx).
-		Preload("Template").
-		Where("date >= ? AND date < ?", start, end).
+	listQ := r.tx(ctx).
+		Preload("Template").Preload("Template.GarnishOptions").
+		Where("date >= ? AND date < ?", start, end)
+	if filter.ProjectID != "" {
+		listQ = listQ.Where("project_id = ?", filter.ProjectID)
+	}
+	err := listQ.
 		Order("date ASC").
 		Offset(params.Offset()).
 		Limit(params.PageSize).
@@ -237,6 +308,7 @@ func (r *MealRepositoryPG) Delete(ctx context.Context, id string) error {
 func toMealModel(meal *mealdomain.Meal) MealModel {
 	return MealModel{
 		ID:             meal.ID,
+		ProjectID:      meal.ProjectID,
 		TemplateID:     meal.TemplateID,
 		SoldOut:        meal.SoldOut,
 		AvailableCount: meal.AvailableCount,
@@ -247,6 +319,7 @@ func toMealModel(meal *mealdomain.Meal) MealModel {
 func toDomainMeal(model *MealModel) *mealdomain.Meal {
 	m := &mealdomain.Meal{
 		ID:             model.ID,
+		ProjectID:      model.ProjectID,
 		TemplateID:     model.TemplateID,
 		SoldOut:        model.SoldOut,
 		AvailableCount: model.AvailableCount,

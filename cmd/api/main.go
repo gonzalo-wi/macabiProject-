@@ -4,6 +4,7 @@ import (
 	"log"
 
 	mealpersistence "macabi-back/internal/meal/infrastructure/persistence"
+	projectpersistence "macabi-back/internal/project/infrastructure/persistence"
 	"macabi-back/internal/shared/config"
 	"macabi-back/internal/shared/database"
 	userpersistence "macabi-back/internal/user/infrastructure/persistence"
@@ -28,6 +29,10 @@ func main() {
 	}
 
 	if err := mealpersistence.RunMigrations(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	if err := projectpersistence.RunMigrations(db); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 

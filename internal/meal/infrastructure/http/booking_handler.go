@@ -37,8 +37,9 @@ func (h *BookingHandler) Book(c *gin.Context) {
 		return
 	}
 	booking, err := h.bookMealUC.Execute(c.Request.Context(), mealusecases.BookMealInput{
-		UserID: userID,
-		MealID: req.MealID,
+		UserID:          userID,
+		MealID:          req.MealID,
+		GarnishOptionID: req.GarnishOptionID,
 	})
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
@@ -99,7 +100,11 @@ func (h *BookingHandler) DailySummary(c *gin.Context) {
 		}
 	}
 
-	summary, err := h.getDailySummaryUC.Execute(c.Request.Context(), date)
+	projectID := c.Query("project_id")
+	summary, err := h.getDailySummaryUC.Execute(c.Request.Context(), mealusecases.GetDailySummaryInput{
+		Date:      date,
+		ProjectID: projectID,
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
 		return

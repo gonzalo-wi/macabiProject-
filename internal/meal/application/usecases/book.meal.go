@@ -21,8 +21,9 @@ func NewBookMeal(mealRepo mealports.MealRepository, bookingRepo mealports.Bookin
 }
 
 type BookMealInput struct {
-	UserID string
-	MealID string
+	UserID          string
+	MealID          string
+	GarnishOptionID *string
 }
 
 func (uc *BookMeal) Execute(ctx context.Context, input BookMealInput) (*mealdomain.Booking, error) {
@@ -33,6 +34,10 @@ func (uc *BookMeal) Execute(ctx context.Context, input BookMealInput) (*mealdoma
 
 	if !mealdomain.IsBookingOpen(meal.Date, time.Now()) {
 		return nil, mealdomain.ErrBookingDeadlinePassed
+	}
+
+	if err := validateGarnish(meal, input.GarnishOptionID); err != nil {
+		return nil, err
 	}
 
 	var booking *mealdomain.Booking
@@ -46,7 +51,7 @@ func (uc *BookMeal) Execute(ctx context.Context, input BookMealInput) (*mealdoma
 			return mealdomain.ErrMealSoldOut
 		}
 
-		existing, err := uc.bookingRepo.FindByUserAndMealTypeAndDate(ctx, input.UserID, meal.Template.Type, meal.Date)
+		existing, err := uc.bookingRepo.FindByUserAndDate(ctx, input.UserID, meal.Date)
 		if err != nil && !errors.Is(err, mealdomain.ErrBookingNotFound) {
 			return fmt.Errorf("check existing booking: %w", err)
 		}
@@ -55,6 +60,14 @@ func (uc *BookMeal) Execute(ctx context.Context, input BookMealInput) (*mealdoma
 			prev, err := uc.mealRepo.FindByID(ctx, existing.MealID)
 			if err != nil {
 				return fmt.Errorf("find previous meal: %w", err)
+			}
+			// Un usuario solo puede asistir a un proyecto por día.
+			if prev.ProjectID != meal.ProjectID {
+				return mealdomain.ErrProjectConflict
+			}
+			// No se puede tener almuerzo y cena el mismo día.
+			if prev.Template.Type != meal.Template.Type {
+				return mealdomain.ErrAlreadyBooked
 			}
 			prev.IncrementAvailable()
 			if err := uc.mealRepo.Update(ctx, prev); err != nil {
@@ -72,7 +85,7 @@ func (uc *BookMeal) Execute(ctx context.Context, input BookMealInput) (*mealdoma
 			return fmt.Errorf("update meal: %w", err)
 		}
 
-		booking = mealdomain.NewBooking(input.UserID, input.MealID)
+		booking = mealdomain.NewBooking(input.UserID, input.MealID, input.GarnishOptionID)
 		if err := uc.bookingRepo.Save(ctx, booking); err != nil {
 			return fmt.Errorf("save booking: %w", err)
 		}
@@ -84,4 +97,22 @@ func (uc *BookMeal) Execute(ctx context.Context, input BookMealInput) (*mealdoma
 
 	booking.Meal = meal
 	return booking, nil
+}
+
+// validateGarnish verifica que la guarnición sea válida para la vianda:
+// - Si la vianda tiene opciones de guarnición, se debe elegir una.
+// - La guarnición elegida debe pertenecer a la plantilla de la vianda.
+func validateGarnish(meal *mealdomain.Meal, garnishOptionID *string) error {
+	if len(meal.Template.GarnishOptions) == 0 {
+		return nil
+	}
+	if garnishOptionID == nil {
+		return mealdomain.ErrGarnishRequired
+	}
+	for _, g := range meal.Template.GarnishOptions {
+		if g.ID == *garnishOptionID {
+			return nil
+		}
+	}
+	return mealdomain.ErrGarnishNotForMeal
 }

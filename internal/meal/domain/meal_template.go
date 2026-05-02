@@ -6,14 +6,15 @@ import (
 )
 
 type MealTemplate struct {
-	ID          string
-	Title       string
-	ImageURL    string
-	Description string
-	Category    Category
-	Type        MealType
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID             string
+	Title          string
+	ImageURL       string
+	Description    string
+	Category       Category
+	Type           MealType
+	GarnishOptions []GarnishOption
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 func NewMealTemplate(title, imageURL, description string, category Category, mealType MealType) (*MealTemplate, error) {

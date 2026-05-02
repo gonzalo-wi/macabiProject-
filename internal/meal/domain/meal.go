@@ -6,6 +6,7 @@ import (
 
 type Meal struct {
 	ID             string
+	ProjectID      string
 	TemplateID     string
 	Template       *MealTemplate
 	SoldOut        bool
@@ -15,14 +16,15 @@ type Meal struct {
 	UpdatedAt      time.Time
 }
 
-func NewMeal(templateID string, availableCount int, date time.Time) (*Meal, error) {
+func NewMeal(projectID, templateID string, availableCount int, date time.Time) (*Meal, error) {
 	if availableCount < 0 {
 		return nil, ErrInvalidAvailableCount
 	}
-	if !isSaturday(date) {
+	if !isValidMealDay(date) {
 		return nil, ErrInvalidDate
 	}
 	return &Meal{
+		ProjectID:      projectID,
 		TemplateID:     templateID,
 		SoldOut:        availableCount == 0,
 		AvailableCount: availableCount,
@@ -52,8 +54,8 @@ const (
 	BookingDeadlineMinute  = 59
 )
 
-func isSaturday(date time.Time) bool {
-	return date.Weekday() == time.Saturday
+func isValidMealDay(date time.Time) bool {
+	return date.Weekday() == time.Saturday || date.Weekday() == time.Sunday
 }
 
 func IsBookingOpen(mealDate time.Time, now time.Time) bool {

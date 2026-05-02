@@ -18,8 +18,14 @@ func NewListAvailableMeals(repo mealports.MealRepository) *ListAvailableMeals {
 	return &ListAvailableMeals{repo: repo}
 }
 
-func (uc *ListAvailableMeals) Execute(ctx context.Context, date time.Time, params pagination.Params) (pagination.Result[mealdomain.Meal], error) {
-	meals, total, err := uc.repo.FindByDate(ctx, date, params)
+type ListAvailableMealsInput struct {
+	Date      time.Time
+	ProjectID string // opcional; vacío = sin filtro
+}
+
+func (uc *ListAvailableMeals) Execute(ctx context.Context, input ListAvailableMealsInput, params pagination.Params) (pagination.Result[mealdomain.Meal], error) {
+	filter := mealports.MealFilter{ProjectID: input.ProjectID}
+	meals, total, err := uc.repo.FindByDate(ctx, input.Date, filter, params)
 	if err != nil {
 		return pagination.Result[mealdomain.Meal]{}, fmt.Errorf("list meals: %w", err)
 	}

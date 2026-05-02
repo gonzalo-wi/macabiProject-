@@ -13,4 +13,8 @@ type MealTemplateRepository interface {
 	FindAll(ctx context.Context, params pagination.Params) ([]mealdomain.MealTemplate, int64, error)
 	Update(ctx context.Context, template *mealdomain.MealTemplate) error
 	Delete(ctx context.Context, id string) error
+
+	SaveGarnishOption(ctx context.Context, option *mealdomain.GarnishOption) error
+	FindGarnishOptionByID(ctx context.Context, id string) (*mealdomain.GarnishOption, error)
+	DeleteGarnishOption(ctx context.Context, id string) error
 }

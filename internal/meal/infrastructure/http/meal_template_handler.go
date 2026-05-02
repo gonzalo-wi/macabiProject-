@@ -12,10 +12,12 @@ import (
 )
 
 type MealTemplateHandler struct {
-	createMealTemplateUC *mealusecases.CreateMealTemplate
-	listMealTemplatesUC  *mealusecases.ListMealTemplates
-	updateMealTemplateUC *mealusecases.UpdateMealTemplate
-	deleteMealTemplateUC *mealusecases.DeleteMealTemplate
+	createMealTemplateUC  *mealusecases.CreateMealTemplate
+	listMealTemplatesUC   *mealusecases.ListMealTemplates
+	updateMealTemplateUC  *mealusecases.UpdateMealTemplate
+	deleteMealTemplateUC  *mealusecases.DeleteMealTemplate
+	addGarnishOptionUC    *mealusecases.AddGarnishOption
+	removeGarnishOptionUC *mealusecases.RemoveGarnishOption
 }
 
 func NewMealTemplateHandler(
@@ -23,12 +25,16 @@ func NewMealTemplateHandler(
 	listUC *mealusecases.ListMealTemplates,
 	updateUC *mealusecases.UpdateMealTemplate,
 	deleteUC *mealusecases.DeleteMealTemplate,
+	addGarnishUC *mealusecases.AddGarnishOption,
+	removeGarnishUC *mealusecases.RemoveGarnishOption,
 ) *MealTemplateHandler {
 	return &MealTemplateHandler{
-		createMealTemplateUC: createUC,
-		listMealTemplatesUC:  listUC,
-		updateMealTemplateUC: updateUC,
-		deleteMealTemplateUC: deleteUC,
+		createMealTemplateUC:  createUC,
+		listMealTemplatesUC:   listUC,
+		updateMealTemplateUC:  updateUC,
+		deleteMealTemplateUC:  deleteUC,
+		addGarnishOptionUC:    addGarnishUC,
+		removeGarnishOptionUC: removeGarnishUC,
 	}
 }
 
@@ -110,4 +116,35 @@ func (h *MealTemplateHandler) Delete(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "template eliminado correctamente"})
+}
+
+func (h *MealTemplateHandler) AddGarnishOption(c *gin.Context) {
+	templateID := c.Param("id")
+	var req CreateGarnishOptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	option, err := h.addGarnishOptionUC.Execute(c.Request.Context(), mealusecases.AddGarnishOptionInput{
+		TemplateID: templateID,
+		Name:       req.Name,
+	})
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusCreated, GarnishOptionResponse{ID: option.ID, Name: option.Name})
+}
+
+func (h *MealTemplateHandler) RemoveGarnishOption(c *gin.Context) {
+	templateID := c.Param("id")
+	optionID := c.Param("garnishId")
+	if err := h.removeGarnishOptionUC.Execute(c.Request.Context(), mealusecases.RemoveGarnishOptionInput{
+		TemplateID: templateID,
+		OptionID:   optionID,
+	}); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "guarnición eliminada correctamente"})
 }

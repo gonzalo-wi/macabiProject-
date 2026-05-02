@@ -19,6 +19,7 @@ func NewCreateMeal(repo mealports.MealRepository, templateRepo mealports.MealTem
 }
 
 type CreateMealInput struct {
+	ProjectID      string
 	TemplateID     string
 	AvailableCount int
 	Date           time.Time
@@ -29,7 +30,7 @@ func (uc *CreateMeal) Execute(ctx context.Context, input CreateMealInput) (*meal
 	if err != nil {
 		return nil, err
 	}
-	meal, err := mealdomain.NewMeal(input.TemplateID, input.AvailableCount, input.Date)
+	meal, err := mealdomain.NewMeal(input.ProjectID, input.TemplateID, input.AvailableCount, input.Date)
 	if err != nil {
 		return nil, err
 	}
