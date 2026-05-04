@@ -17,6 +17,7 @@ type ProjectModel struct {
 	Name        string `gorm:"not null"`
 	Description string
 	AdminUserID string `gorm:"type:uuid;not null"`
+	Capacity    int    `gorm:"not null;default:45"`
 	Active      bool   `gorm:"not null;default:true"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -104,6 +105,7 @@ func toProjectModel(p *projectdomain.Project) ProjectModel {
 		Name:        p.Name,
 		Description: p.Description,
 		AdminUserID: p.AdminUserID,
+		Capacity:    p.Capacity,
 		Active:      p.Active,
 	}
 }
@@ -114,6 +116,7 @@ func toDomainProject(m ProjectModel) *projectdomain.Project {
 		Name:        m.Name,
 		Description: m.Description,
 		AdminUserID: m.AdminUserID,
+		Capacity:    m.Capacity,
 		Active:      m.Active,
 		CreatedAt:   m.CreatedAt,
 		UpdatedAt:   m.UpdatedAt,

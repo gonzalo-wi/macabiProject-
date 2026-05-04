@@ -1,6 +1,9 @@
 package main
 
 import (
+	attendanceusecases "macabi-back/internal/attendance/application/usecases"
+	attendancehttp "macabi-back/internal/attendance/infrastructure/http"
+	attendancepersistence "macabi-back/internal/attendance/infrastructure/persistence"
 	mealusecases "macabi-back/internal/meal/application/usecases"
 	mealhttp "macabi-back/internal/meal/infrastructure/http"
 	mealpersistence "macabi-back/internal/meal/infrastructure/persistence"
@@ -26,6 +29,7 @@ type Dependencies struct {
 	BookingHandler      *mealhttp.BookingHandler
 	MealTemplateHandler *mealhttp.MealTemplateHandler
 	ProjectHandler      *projecthttp.ProjectHandler
+	AttendanceHandler   *attendancehttp.AttendanceHandler
 	TokenPrv            userports.TokenProvider
 }
 
@@ -132,6 +136,16 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	// Project handler
 	projectHandler := projecthttp.NewProjectHandler(createProjectUC, listProjectsUC, getProjectUC, updateProjectUC, deleteProjectUC)
 
+	// Attendance infrastructure
+	attendanceRepo := attendancepersistence.NewAttendanceRepositoryPG(db)
+
+	// Attendance use cases
+	confirmAttendanceUC := attendanceusecases.NewConfirmAttendance(attendanceRepo)
+	getAttendanceCountUC := attendanceusecases.NewGetAttendanceCount(attendanceRepo)
+
+	// Attendance handler
+	attendanceHandler := attendancehttp.NewAttendanceHandler(confirmAttendanceUC, getAttendanceCountUC, projectRepo)
+
 	return &Dependencies{
 		AuthHandler:         authHandler,
 		UserHandler:         userHandler,
@@ -139,6 +153,7 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		BookingHandler:      bookingHandler,
 		MealTemplateHandler: templateHandler,
 		ProjectHandler:      projectHandler,
+		AttendanceHandler:   attendanceHandler,
 		TokenPrv:            jwtProvider,
 	}
 }

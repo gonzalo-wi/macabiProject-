@@ -11,6 +11,7 @@ type CreateProjectInput struct {
 	Name        string
 	Description string
 	AdminUserID string
+	Capacity    int
 }
 
 type CreateProject struct {
@@ -22,7 +23,7 @@ func NewCreateProject(repo projectports.ProjectRepository) *CreateProject {
 }
 
 func (uc *CreateProject) Execute(ctx context.Context, input CreateProjectInput) (*projectdomain.Project, error) {
-	p, err := projectdomain.NewProject(input.Name, input.Description, input.AdminUserID)
+	p, err := projectdomain.NewProject(input.Name, input.Description, input.AdminUserID, input.Capacity)
 	if err != nil {
 		return nil, err
 	}

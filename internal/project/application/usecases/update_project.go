@@ -13,6 +13,7 @@ type UpdateProjectInput struct {
 	Name        string
 	Description string
 	AdminUserID string
+	Capacity    int
 }
 
 type UpdateProject struct {
@@ -40,6 +41,7 @@ func (uc *UpdateProject) Execute(ctx context.Context, input UpdateProjectInput) 
 	p.Name = name
 	p.Description = input.Description
 	p.AdminUserID = input.AdminUserID
+	p.Capacity = input.Capacity
 
 	if err := uc.repo.Update(ctx, p); err != nil {
 		return nil, err
