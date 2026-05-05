@@ -12,14 +12,12 @@ type CreateProjectRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
 	AdminUserID string `json:"admin_user_id" binding:"required"`
-	Capacity    int    `json:"capacity" binding:"required"`
 }
 
 type UpdateProjectRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
 	AdminUserID string `json:"admin_user_id" binding:"required"`
-	Capacity    int    `json:"capacity" binding:"required"`
 }
 
 // --- Responses ---
@@ -29,7 +27,6 @@ type ProjectResponse struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	AdminUserID string `json:"admin_user_id"`
-	Capacity    int    `json:"capacity"`
 	Active      bool   `json:"active"`
 }
 
@@ -39,7 +36,6 @@ func toProjectResponse(p *projectdomain.Project) ProjectResponse {
 		Name:        p.Name,
 		Description: p.Description,
 		AdminUserID: p.AdminUserID,
-		Capacity:    p.Capacity,
 		Active:      p.Active,
 	}
 }
@@ -65,7 +61,6 @@ func (r CreateProjectRequest) toInput() projectusecases.CreateProjectInput {
 		Name:        r.Name,
 		Description: r.Description,
 		AdminUserID: r.AdminUserID,
-		Capacity:    r.Capacity,
 	}
 }
 
@@ -75,6 +70,5 @@ func (r UpdateProjectRequest) toInput(id string) projectusecases.UpdateProjectIn
 		Name:        r.Name,
 		Description: r.Description,
 		AdminUserID: r.AdminUserID,
-		Capacity:    r.Capacity,
 	}
 }

@@ -7,7 +7,6 @@ import (
 
 	attendanceusecases "macabi-back/internal/attendance/application/usecases"
 	attendancedomain "macabi-back/internal/attendance/domain"
-	projectports "macabi-back/internal/project/application/ports"
 	sharedErrors "macabi-back/internal/shared/errors"
 	userhttp "macabi-back/internal/user/infrastructure/http"
 )
@@ -15,18 +14,15 @@ import (
 type AttendanceHandler struct {
 	confirmAttendance   *attendanceusecases.ConfirmAttendance
 	getAttendanceCount  *attendanceusecases.GetAttendanceCount
-	projectRepo         projectports.ProjectRepository
 }
 
 func NewAttendanceHandler(
 	confirmAttendance *attendanceusecases.ConfirmAttendance,
 	getAttendanceCount *attendanceusecases.GetAttendanceCount,
-	projectRepo projectports.ProjectRepository,
 ) *AttendanceHandler {
 	return &AttendanceHandler{
 		confirmAttendance:  confirmAttendance,
 		getAttendanceCount: getAttendanceCount,
-		projectRepo:        projectRepo,
 	}
 }
 
@@ -67,15 +63,8 @@ func (h *AttendanceHandler) GetCount(c *gin.Context) {
 		return
 	}
 
-	project, err := h.projectRepo.FindByID(c.Request.Context(), projectID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, sharedErrors.NewErrorResponse(err.Error()))
-		return
-	}
-
 	c.JSON(http.StatusOK, AttendanceCountResponse{
 		ProjectID: projectID,
 		Confirmed: output.Confirmed,
-		Capacity:  project.Capacity,
 	})
 }

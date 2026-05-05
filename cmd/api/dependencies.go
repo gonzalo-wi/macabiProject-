@@ -144,7 +144,7 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	getAttendanceCountUC := attendanceusecases.NewGetAttendanceCount(attendanceRepo)
 
 	// Attendance handler
-	attendanceHandler := attendancehttp.NewAttendanceHandler(confirmAttendanceUC, getAttendanceCountUC, projectRepo)
+	attendanceHandler := attendancehttp.NewAttendanceHandler(confirmAttendanceUC, getAttendanceCountUC)
 
 	return &Dependencies{
 		AuthHandler:         authHandler,

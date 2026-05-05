@@ -24,5 +24,4 @@ type AttendanceResponse struct {
 type AttendanceCountResponse struct {
 	ProjectID string `json:"project_id"`
 	Confirmed int    `json:"confirmed"`
-	Capacity  int    `json:"capacity"`
 }
