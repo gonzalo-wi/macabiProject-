@@ -1,12 +1,9 @@
 package main
 
 import (
-	attendanceusecases "macabi-back/internal/attendance/application/usecases"
-	attendancehttp "macabi-back/internal/attendance/infrastructure/http"
-	attendancepersistence "macabi-back/internal/attendance/infrastructure/persistence"
-	mealusecases "macabi-back/internal/meal/application/usecases"
-	mealhttp "macabi-back/internal/meal/infrastructure/http"
-	mealpersistence "macabi-back/internal/meal/infrastructure/persistence"
+	eventusecases "macabi-back/internal/event/application/usecases"
+	eventhttp "macabi-back/internal/event/infrastructure/http"
+	eventpersistence "macabi-back/internal/event/infrastructure/persistence"
 	projectusecases "macabi-back/internal/project/application/usecases"
 	projecthttp "macabi-back/internal/project/infrastructure/http"
 	projectpersistence "macabi-back/internal/project/infrastructure/persistence"
@@ -23,18 +20,14 @@ import (
 )
 
 type Dependencies struct {
-	AuthHandler         *userhttp.AuthHandler
-	UserHandler         *userhttp.UserHandler
-	MealHandler         *mealhttp.MealHandler
-	BookingHandler      *mealhttp.BookingHandler
-	MealTemplateHandler *mealhttp.MealTemplateHandler
-	ProjectHandler      *projecthttp.ProjectHandler
-	AttendanceHandler   *attendancehttp.AttendanceHandler
-	TokenPrv            userports.TokenProvider
+	AuthHandler    *userhttp.AuthHandler
+	UserHandler    *userhttp.UserHandler
+	ProjectHandler *projecthttp.ProjectHandler
+	EventHandler   *eventhttp.Handler
+	TokenPrv       userports.TokenProvider
 }
 
 func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
-	// User infrastructure
 	userRepo := userpersistence.NewUserRepositoryPG(db)
 	inviteRepo := userpersistence.NewUserInvitationRepositoryPG(db)
 	tokenRepo := userpersistence.NewPasswordResetTokenRepositoryPG(db)
@@ -44,7 +37,6 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	invitationMailer := usermail.NewBrevoTransactionalMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
 	passwordResetMailer := usermail.NewBrevoPasswordResetMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
 
-	// User use cases
 	loginUC := userusecases.NewLogin(userRepo, hasher, jwtProvider)
 	acceptInvitationUC := userusecases.NewAcceptInvitation(transactor, userRepo, inviteRepo, hasher)
 	createInvitationUC := userusecases.NewCreateUserInvitation(
@@ -78,7 +70,6 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	updateUserUC := userusecases.NewUpdateUser(userRepo)
 	changePasswordUC := userusecases.NewChangePassword(userRepo, hasher)
 
-	// User handlers
 	authHandler := userhttp.NewAuthHandler(
 		loginUC,
 		acceptInvitationUC,
@@ -98,62 +89,35 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		revokeInvitationUC,
 	)
 
-	// Meal infrastructure
-	mealRepo := mealpersistence.NewMealRepositoryPG(db)
-	templateRepo := mealpersistence.NewMealTemplateRepositoryPG(db)
-	bookingRepo := mealpersistence.NewBookingRepositoryPG(db)
-
-	// Meal use cases
-	createMealTemplateUC := mealusecases.NewCreateMealTemplate(templateRepo)
-	listMealTemplatesUC := mealusecases.NewListMealTemplates(templateRepo)
-	updateMealTemplateUC := mealusecases.NewUpdateMealTemplate(templateRepo)
-	deleteMealTemplateUC := mealusecases.NewDeleteMealTemplate(templateRepo)
-	createMealUC := mealusecases.NewCreateMeal(mealRepo, templateRepo)
-	listAvailableMealsUC := mealusecases.NewListAvailableMeals(mealRepo)
-	deleteMealUC := mealusecases.NewDeleteMeal(mealRepo)
-	bookMealUC := mealusecases.NewBookMeal(mealRepo, bookingRepo, transactor)
-	cancelBookingUC := mealusecases.NewCancelBooking(bookingRepo, mealRepo, transactor)
-	listMyBookingsUC := mealusecases.NewListMyBookings(bookingRepo)
-	getDailySummaryUC := mealusecases.NewGetDailySummary(bookingRepo)
-	addGarnishOptionUC := mealusecases.NewAddGarnishOption(templateRepo)
-	removeGarnishOptionUC := mealusecases.NewRemoveGarnishOption(templateRepo)
-
-	// Meal handlers
-	mealHandler := mealhttp.NewMealHandler(createMealUC, listAvailableMealsUC, deleteMealUC)
-	bookingHandler := mealhttp.NewBookingHandler(bookMealUC, cancelBookingUC, listMyBookingsUC, getDailySummaryUC)
-	templateHandler := mealhttp.NewMealTemplateHandler(createMealTemplateUC, listMealTemplatesUC, updateMealTemplateUC, deleteMealTemplateUC, addGarnishOptionUC, removeGarnishOptionUC)
-
-	// Project infrastructure
 	projectRepo := projectpersistence.NewProjectRepositoryPG(db)
-
-	// Project use cases
 	createProjectUC := projectusecases.NewCreateProject(projectRepo)
 	listProjectsUC := projectusecases.NewListProjects(projectRepo)
 	getProjectUC := projectusecases.NewGetProject(projectRepo)
 	updateProjectUC := projectusecases.NewUpdateProject(projectRepo)
 	deleteProjectUC := projectusecases.NewDeleteProject(projectRepo)
+	addMemberUC := projectusecases.NewAddProjectMember(projectRepo)
+	removeMemberUC := projectusecases.NewRemoveProjectMember(projectRepo)
+	listMembersUC := projectusecases.NewListProjectMembers(projectRepo)
+	projectHandler := projecthttp.NewProjectHandler(
+		createProjectUC,
+		listProjectsUC,
+		getProjectUC,
+		updateProjectUC,
+		deleteProjectUC,
+		addMemberUC,
+		removeMemberUC,
+		listMembersUC,
+	)
 
-	// Project handler
-	projectHandler := projecthttp.NewProjectHandler(createProjectUC, listProjectsUC, getProjectUC, updateProjectUC, deleteProjectUC)
-
-	// Attendance infrastructure
-	attendanceRepo := attendancepersistence.NewAttendanceRepositoryPG(db)
-
-	// Attendance use cases
-	confirmAttendanceUC := attendanceusecases.NewConfirmAttendance(attendanceRepo)
-	getAttendanceCountUC := attendanceusecases.NewGetAttendanceCount(attendanceRepo)
-
-	// Attendance handler
-	attendanceHandler := attendancehttp.NewAttendanceHandler(confirmAttendanceUC, getAttendanceCountUC)
+	eventRepo := eventpersistence.NewRepositoryPG(db)
+	eventSvc := eventusecases.NewService(eventRepo)
+	eventHandler := eventhttp.NewHandler(eventSvc)
 
 	return &Dependencies{
-		AuthHandler:         authHandler,
-		UserHandler:         userHandler,
-		MealHandler:         mealHandler,
-		BookingHandler:      bookingHandler,
-		MealTemplateHandler: templateHandler,
-		ProjectHandler:      projectHandler,
-		AttendanceHandler:   attendanceHandler,
-		TokenPrv:            jwtProvider,
+		AuthHandler:    authHandler,
+		UserHandler:    userHandler,
+		ProjectHandler: projectHandler,
+		EventHandler:   eventHandler,
+		TokenPrv:       jwtProvider,
 	}
 }

@@ -14,15 +14,14 @@ import (
 )
 
 type UserInvitationModel struct {
-	ID              string  `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Email           string  `gorm:"index;not null"`
-	Name            string  `gorm:"not null"`
-	Role            string  `gorm:"not null;default:'user'"`
-	InvitedByUserID *string `gorm:"type:uuid"`
-	TokenHash       string  `gorm:"uniqueIndex;not null;size:64"`
-	ExpiresAt       time.Time
-	UsedAt          *time.Time
-	CreatedAt       time.Time
+	ID        string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Email     string `gorm:"index;not null"`
+	Name      string `gorm:"not null"`
+	Role      string `gorm:"not null;default:'user'"`
+	TokenHash string `gorm:"not null"`
+	ExpiresAt *time.Time
+	UsedAt    *time.Time
+	CreatedAt time.Time
 }
 
 func (UserInvitationModel) TableName() string {
@@ -52,18 +51,14 @@ func (r *UserInvitationRepositoryPG) InvalidatePendingByEmail(ctx context.Contex
 	return nil
 }
 
-func (r *UserInvitationRepositoryPG) Create(ctx context.Context, email, name string, role userdomain.Role, invitedByUserID, tokenHash string, expiresAt time.Time) error {
-	var invitedBy *string
-	if invitedByUserID != "" {
-		invitedBy = &invitedByUserID
-	}
+func (r *UserInvitationRepositoryPG) Create(ctx context.Context, email, name string, role userdomain.Role, tokenHash string, expiresAt time.Time) error {
+	exp := expiresAt
 	row := UserInvitationModel{
-		Email:           email,
-		Name:            name,
-		Role:            string(role),
-		InvitedByUserID: invitedBy,
-		TokenHash:       tokenHash,
-		ExpiresAt:       expiresAt,
+		Email:     email,
+		Name:      name,
+		Role:      string(role),
+		TokenHash: tokenHash,
+		ExpiresAt: &exp,
 	}
 	if err := r.dbx(ctx).Create(&row).Error; err != nil {
 		return fmt.Errorf("create invitation: %w", err)
@@ -102,11 +97,10 @@ func modelToPending(row *UserInvitationModel) *userports.PendingUserInvitation {
 		Email:     row.Email,
 		Name:      row.Name,
 		Role:      userdomain.Role(row.Role),
-		ExpiresAt: row.ExpiresAt,
 		CreatedAt: row.CreatedAt,
 	}
-	if row.InvitedByUserID != nil {
-		p.InvitedByUserID = *row.InvitedByUserID
+	if row.ExpiresAt != nil {
+		p.ExpiresAt = *row.ExpiresAt
 	}
 	return p
 }
@@ -114,7 +108,8 @@ func modelToPending(row *UserInvitationModel) *userports.PendingUserInvitation {
 func (r *UserInvitationRepositoryPG) FindValidByTokenHash(ctx context.Context, tokenHash string) (*userports.UserInvitation, error) {
 	var row UserInvitationModel
 	err := r.dbx(ctx).
-		Where("token_hash = ? AND used_at IS NULL AND expires_at > ?", tokenHash, time.Now()).
+		Where("token_hash = ? AND used_at IS NULL", tokenHash).
+		Where("expires_at IS NULL OR expires_at > ?", time.Now()).
 		First(&row).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -123,16 +118,12 @@ func (r *UserInvitationRepositoryPG) FindValidByTokenHash(ctx context.Context, t
 		return nil, fmt.Errorf("find invitation: %w", err)
 	}
 	role := userdomain.Role(row.Role)
-	inv := &userports.UserInvitation{
+	return &userports.UserInvitation{
 		ID:    row.ID,
 		Email: row.Email,
 		Name:  row.Name,
 		Role:  role,
-	}
-	if row.InvitedByUserID != nil {
-		inv.InvitedByUserID = *row.InvitedByUserID
-	}
-	return inv, nil
+	}, nil
 }
 
 func (r *UserInvitationRepositoryPG) MarkUsed(ctx context.Context, id string) error {

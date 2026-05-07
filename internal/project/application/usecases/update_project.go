@@ -12,7 +12,6 @@ type UpdateProjectInput struct {
 	ID          string
 	Name        string
 	Description string
-	AdminUserID string
 }
 
 type UpdateProject struct {
@@ -33,13 +32,9 @@ func (uc *UpdateProject) Execute(ctx context.Context, input UpdateProjectInput) 
 	if name == "" {
 		return nil, projectdomain.ErrEmptyName
 	}
-	if input.AdminUserID == "" {
-		return nil, projectdomain.ErrMissingAdmin
-	}
 
 	p.Name = name
 	p.Description = input.Description
-	p.AdminUserID = input.AdminUserID
 
 	if err := uc.repo.Update(ctx, p); err != nil {
 		return nil, err

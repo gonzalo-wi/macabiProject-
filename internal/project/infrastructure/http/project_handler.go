@@ -12,11 +12,14 @@ import (
 )
 
 type ProjectHandler struct {
-	createUC *projectusecases.CreateProject
-	listUC   *projectusecases.ListProjects
-	getUC    *projectusecases.GetProject
-	updateUC *projectusecases.UpdateProject
-	deleteUC *projectusecases.DeleteProject
+	createUC       *projectusecases.CreateProject
+	listUC         *projectusecases.ListProjects
+	getUC          *projectusecases.GetProject
+	updateUC       *projectusecases.UpdateProject
+	deleteUC       *projectusecases.DeleteProject
+	addMemberUC    *projectusecases.AddProjectMember
+	removeMemberUC *projectusecases.RemoveProjectMember
+	listMembersUC  *projectusecases.ListProjectMembers
 }
 
 func NewProjectHandler(
@@ -25,13 +28,19 @@ func NewProjectHandler(
 	getUC *projectusecases.GetProject,
 	updateUC *projectusecases.UpdateProject,
 	deleteUC *projectusecases.DeleteProject,
+	addMemberUC *projectusecases.AddProjectMember,
+	removeMemberUC *projectusecases.RemoveProjectMember,
+	listMembersUC *projectusecases.ListProjectMembers,
 ) *ProjectHandler {
 	return &ProjectHandler{
-		createUC: createUC,
-		listUC:   listUC,
-		getUC:    getUC,
-		updateUC: updateUC,
-		deleteUC: deleteUC,
+		createUC:       createUC,
+		listUC:         listUC,
+		getUC:          getUC,
+		updateUC:       updateUC,
+		deleteUC:       deleteUC,
+		addMemberUC:    addMemberUC,
+		removeMemberUC: removeMemberUC,
+		listMembersUC:  listMembersUC,
 	}
 }
 
@@ -86,6 +95,45 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 
 func (h *ProjectHandler) Delete(c *gin.Context) {
 	if err := h.deleteUC.Execute(c.Request.Context(), c.Param("id")); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *ProjectHandler) ListMembers(c *gin.Context) {
+	list, err := h.listMembersUC.Execute(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	out := make([]ProjectMemberResponse, len(list))
+	for i := range list {
+		out[i] = toMemberResponse(&list[i])
+	}
+	c.JSON(http.StatusOK, gin.H{"data": out})
+}
+
+func (h *ProjectHandler) AddMember(c *gin.Context) {
+	var req AddProjectMemberRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	m, err := h.addMemberUC.Execute(c.Request.Context(), projectusecases.AddProjectMemberInput{
+		ProjectID: c.Param("id"),
+		UserID:    req.UserID,
+		Role:      req.Role,
+	})
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusCreated, toMemberResponse(m))
+}
+
+func (h *ProjectHandler) RemoveMember(c *gin.Context) {
+	if err := h.removeMemberUC.Execute(c.Request.Context(), c.Param("id"), c.Param("userId")); err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}

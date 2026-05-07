@@ -6,28 +6,34 @@ import (
 	"macabi-back/internal/shared/pagination"
 )
 
-// --- Requests ---
-
 type CreateProjectRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
-	AdminUserID string `json:"admin_user_id" binding:"required"`
 }
 
 type UpdateProjectRequest struct {
 	Name        string `json:"name" binding:"required"`
 	Description string `json:"description"`
-	AdminUserID string `json:"admin_user_id" binding:"required"`
 }
-
-// --- Responses ---
 
 type ProjectResponse struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	AdminUserID string `json:"admin_user_id"`
-	Active      bool   `json:"active"`
+	CreatedAt   string `json:"created_at,omitempty"`
+}
+
+type AddProjectMemberRequest struct {
+	UserID string `json:"user_id" binding:"required"`
+	Role   string `json:"role" binding:"required"`
+}
+
+type ProjectMemberResponse struct {
+	ID        string `json:"id"`
+	ProjectID string `json:"project_id"`
+	UserID    string `json:"user_id"`
+	Role      string `json:"role"`
+	CreatedAt string `json:"created_at,omitempty"`
 }
 
 func toProjectResponse(p *projectdomain.Project) ProjectResponse {
@@ -35,10 +41,11 @@ func toProjectResponse(p *projectdomain.Project) ProjectResponse {
 		ID:          p.ID,
 		Name:        p.Name,
 		Description: p.Description,
-		AdminUserID: p.AdminUserID,
-		Active:      p.Active,
+		CreatedAt:   p.CreatedAt.Format(timeRFC3339),
 	}
 }
+
+const timeRFC3339 = "2006-01-02T15:04:05Z07:00"
 
 func toProjectListResponse(result pagination.Result[projectdomain.Project]) pagination.Result[ProjectResponse] {
 	items := make([]ProjectResponse, len(result.Data))
@@ -54,13 +61,10 @@ func toProjectListResponse(result pagination.Result[projectdomain.Project]) pagi
 	}
 }
 
-// --- Input mappers ---
-
 func (r CreateProjectRequest) toInput() projectusecases.CreateProjectInput {
 	return projectusecases.CreateProjectInput{
 		Name:        r.Name,
 		Description: r.Description,
-		AdminUserID: r.AdminUserID,
 	}
 }
 
@@ -69,6 +73,15 @@ func (r UpdateProjectRequest) toInput(id string) projectusecases.UpdateProjectIn
 		ID:          id,
 		Name:        r.Name,
 		Description: r.Description,
-		AdminUserID: r.AdminUserID,
+	}
+}
+
+func toMemberResponse(m *projectdomain.ProjectMember) ProjectMemberResponse {
+	return ProjectMemberResponse{
+		ID:        m.ID,
+		ProjectID: m.ProjectID,
+		UserID:    m.UserID,
+		Role:      string(m.Role),
+		CreatedAt: m.CreatedAt.Format(timeRFC3339),
 	}
 }

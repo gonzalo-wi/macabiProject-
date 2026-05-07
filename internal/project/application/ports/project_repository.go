@@ -13,4 +13,8 @@ type ProjectRepository interface {
 	FindAll(ctx context.Context, params pagination.Params) (pagination.Result[projectdomain.Project], error)
 	Update(ctx context.Context, p *projectdomain.Project) error
 	Delete(ctx context.Context, id string) error
+
+	ListMembers(ctx context.Context, projectID string) ([]projectdomain.ProjectMember, error)
+	AddMember(ctx context.Context, m *projectdomain.ProjectMember) error
+	RemoveMember(ctx context.Context, projectID, userID string) error
 }

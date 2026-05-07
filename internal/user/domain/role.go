@@ -5,15 +5,13 @@ import "fmt"
 type Role string
 
 const (
-	RoleSuperAdmin Role = "super_admin"
-	RoleAdmin      Role = "admin"
-	RoleUser       Role = "user"
+	RoleAdmin Role = "admin"
+	RoleUser  Role = "user"
 )
 
 var validRoles = map[Role]bool{
-	RoleSuperAdmin: true,
-	RoleAdmin:      true,
-	RoleUser:       true,
+	RoleAdmin: true,
+	RoleUser:  true,
 }
 
 func NewRole(value string) (Role, error) {
@@ -33,7 +31,6 @@ func (r Role) IsAtLeast(required Role) bool {
 }
 
 var roleHierarchy = map[Role]int{
-	RoleUser:       1,
-	RoleAdmin:      2,
-	RoleSuperAdmin: 3,
+	RoleUser:  1,
+	RoleAdmin: 2,
 }

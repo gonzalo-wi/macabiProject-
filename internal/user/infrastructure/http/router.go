@@ -23,35 +23,35 @@ func RegisterRoutes(r *gin.Engine, authHandler *AuthHandler, userHandler *UserHa
 		api.GET("/me", userHandler.Me)
 		api.PATCH("/me/password", userHandler.ChangePassword)
 		api.GET("/users/invitations",
-			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			RequireRole(userdomain.RoleAdmin),
 			userHandler.ListPendingInvitations,
 		)
 		api.POST("/users/invitations/:id/resend",
-			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			RequireRole(userdomain.RoleAdmin),
 			userHandler.ResendInvitation,
 		)
 		api.DELETE("/users/invitations/:id",
-			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			RequireRole(userdomain.RoleAdmin),
 			userHandler.RevokeInvitation,
 		)
 		api.POST("/users/invitations",
-			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			RequireRole(userdomain.RoleAdmin),
 			userHandler.CreateInvitation,
 		)
 		api.GET("/users",
-			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			RequireRole(userdomain.RoleAdmin),
 			userHandler.ListUsers,
 		)
 		api.PATCH("/users/:id/role",
-			RequireRole(userdomain.RoleSuperAdmin),
+			RequireRole(userdomain.RoleAdmin),
 			userHandler.ChangeRole,
 		)
 		api.PATCH("/users/:id/status",
-			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			RequireRole(userdomain.RoleAdmin),
 			userHandler.SetStatus,
 		)
 		api.PUT("/users/:id",
-			RequireRole(userdomain.RoleSuperAdmin, userdomain.RoleAdmin),
+			RequireRole(userdomain.RoleAdmin),
 			userHandler.UpdateUser,
 		)
 	}

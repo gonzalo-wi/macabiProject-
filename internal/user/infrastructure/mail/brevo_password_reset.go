@@ -41,8 +41,8 @@ func (m *BrevoPasswordResetMailer) SendResetLink(ctx context.Context, toEmail, r
 			Email: m.from,
 			Name:  brevoSenderDisplayName,
 		},
-		To:          []brevoRecipient{{Email: toEmail}},
-		Subject:     "Restablecer contraseña — Macabi Madrijim",
+		To:      []brevoRecipient{{Email: toEmail}},
+		Subject: "Restablecer contraseña — Macabi Madrijim",
 		HTMLContent: fmt.Sprintf(
 			`<p>Recibimos una solicitud para restablecer tu contraseña en Macabi Madrijim.</p>
 <p><a href="%s">Hacé clic aquí para elegir una nueva contraseña</a></p>
