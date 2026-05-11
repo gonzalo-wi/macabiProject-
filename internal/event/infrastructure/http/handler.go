@@ -136,6 +136,14 @@ func (h *Handler) PatchEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, toEventInstanceJSON(e))
 }
 
+func (h *Handler) DeleteEvent(c *gin.Context) {
+	if err := h.svc.DeleteEvent(c.Request.Context(), c.Param("id")); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *Handler) SetEventProjects(c *gin.Context) {
 	var req setProjectsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -189,6 +197,22 @@ func (h *Handler) PatchModule(c *gin.Context) {
 
 func (h *Handler) DeleteModule(c *gin.Context) {
 	if err := h.svc.DeleteModule(c.Request.Context(), c.Param("id")); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) DeleteOptionGroup(c *gin.Context) {
+	if err := h.svc.DeleteOptionGroup(c.Request.Context(), c.Param("id")); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) DeleteOption(c *gin.Context) {
+	if err := h.svc.DeleteOption(c.Request.Context(), c.Param("id")); err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
@@ -303,6 +327,26 @@ func (h *Handler) GetMyResponse(c *gin.Context) {
 		"response": responseToJSON(resp),
 		"answers":  answersToJSON(answers),
 	})
+}
+
+func (h *Handler) ListEventResponsesForAdmin(c *gin.Context) {
+	list, err := h.svc.ListResponsesForAdmin(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	data := make([]gin.H, len(list))
+	for i := range list {
+		row := list[i]
+		rmeta := responseToJSON(&row.Response)
+		rmeta["user_name"] = row.UserName
+		rmeta["user_email"] = row.UserEmail
+		data[i] = gin.H{
+			"response": rmeta,
+			"answers":  answersToJSON(row.Answers),
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
 func moduleToJSON(m *eventdomain.EventModule) gin.H {

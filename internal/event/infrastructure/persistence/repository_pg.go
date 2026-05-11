@@ -2,6 +2,7 @@ package eventpersistence
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"time"
 
@@ -123,6 +124,62 @@ func (r *RepositoryPG) UpdateInstance(ctx context.Context, e *eventdomain.EventI
 		"response_deadline_at": e.ResponseDeadlineAt,
 		"status":               string(e.Status),
 	}).Error
+}
+
+func (r *RepositoryPG) DeleteInstance(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var respIDs []string
+		if err := tx.Model(&EventResponseModel{}).Where("event_instance_id = ?", id).Pluck("id", &respIDs).Error; err != nil {
+			return err
+		}
+		if len(respIDs) > 0 {
+			if err := tx.Where("response_id IN ?", respIDs).Delete(&EventResponseAnswerModel{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("event_instance_id = ?", id).Delete(&EventResponseModel{}).Error; err != nil {
+			return err
+		}
+
+		var moduleIDs []string
+		if err := tx.Model(&EventModuleModel{}).Where("event_instance_id = ?", id).Pluck("id", &moduleIDs).Error; err != nil {
+			return err
+		}
+		for _, mid := range moduleIDs {
+			if err := tx.Where("module_id = ?", mid).Delete(&EventModuleProjectModel{}).Error; err != nil {
+				return err
+			}
+		}
+		if len(moduleIDs) > 0 {
+			var groupIDs []string
+			if err := tx.Model(&EventOptionGroupModel{}).Where("module_id IN ?", moduleIDs).Pluck("id", &groupIDs).Error; err != nil {
+				return err
+			}
+			if len(groupIDs) > 0 {
+				if err := tx.Where("group_id IN ?", groupIDs).Delete(&EventOptionModel{}).Error; err != nil {
+					return err
+				}
+			}
+			if err := tx.Where("module_id IN ?", moduleIDs).Delete(&EventOptionGroupModel{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("event_instance_id = ?", id).Delete(&EventModuleModel{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("event_instance_id = ?", id).Delete(&EventInstanceProjectModel{}).Error; err != nil {
+			return err
+		}
+
+		res := tx.Where("id = ?", id).Delete(&EventInstanceModel{})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return eventdomain.ErrNotFound
+		}
+		return nil
+	})
 }
 
 func (r *RepositoryPG) FindInstanceByID(ctx context.Context, id string) (*eventdomain.EventInstance, error) {
@@ -298,6 +355,10 @@ func (r *RepositoryPG) FindOptionGroupByID(ctx context.Context, id string) (*eve
 	return toDomainGroup(&m), nil
 }
 
+func (r *RepositoryPG) DeleteOptionGroup(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&EventOptionGroupModel{}, "id = ?", id).Error
+}
+
 func (r *RepositoryPG) UpdateOptionGroup(ctx context.Context, g *eventdomain.EventOptionGroup) error {
 	return r.db.WithContext(ctx).Model(&EventOptionGroupModel{}).Where("id = ?", g.ID).Updates(map[string]interface{}{
 		"name":        g.Name,
@@ -323,6 +384,10 @@ func (r *RepositoryPG) UpdateOption(ctx context.Context, o *eventdomain.EventOpt
 		"sort_order":    o.SortOrder,
 		"current_count": o.CurrentCount,
 	}).Error
+}
+
+func (r *RepositoryPG) DeleteOption(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&EventOptionModel{}, "id = ?", id).Error
 }
 
 func (r *RepositoryPG) FindOptionByID(ctx context.Context, id string) (*eventdomain.EventOption, error) {
@@ -376,6 +441,67 @@ func (r *RepositoryPG) LoadUserResponseDetail(ctx context.Context, eventID, user
 		out[i] = *toDomainAns(&a)
 	}
 	return resp, out, nil
+}
+
+func (r *RepositoryPG) ListResponsesForEvent(ctx context.Context, eventID string) ([]eventdomain.EventResponseWithParticipant, error) {
+	type listRow struct {
+		ID              string         `gorm:"column:id"`
+		EventInstanceID string         `gorm:"column:event_instance_id"`
+		UserID          string         `gorm:"column:user_id"`
+		ProjectID       *string        `gorm:"column:project_id"`
+		CreatedAt       time.Time      `gorm:"column:created_at"`
+		UserName        sql.NullString `gorm:"column:user_name"`
+		UserEmail       sql.NullString `gorm:"column:user_email"`
+	}
+	var rows []listRow
+	err := r.db.WithContext(ctx).Raw(`
+SELECT er.id, er.event_instance_id, er.user_id, er.project_id, er.created_at,
+       u.name AS user_name, u.email AS user_email
+FROM event_responses er
+LEFT JOIN users u ON u.id = er.user_id
+WHERE er.event_instance_id = ?
+ORDER BY er.created_at ASC`, eventID).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+	respIDs := make([]string, len(rows))
+	for i := range rows {
+		respIDs[i] = rows[i].ID
+	}
+	var ansRows []EventResponseAnswerModel
+	if err := r.db.WithContext(ctx).Where("response_id IN ?", respIDs).Find(&ansRows).Error; err != nil {
+		return nil, err
+	}
+	byResp := make(map[string][]eventdomain.EventResponseAnswer)
+	for i := range ansRows {
+		da := *toDomainAns(&ansRows[i])
+		byResp[ansRows[i].ResponseID] = append(byResp[ansRows[i].ResponseID], da)
+	}
+	out := make([]eventdomain.EventResponseWithParticipant, len(rows))
+	for i, row := range rows {
+		m := EventResponseModel{
+			ID: row.ID, EventInstanceID: row.EventInstanceID, UserID: row.UserID,
+			ProjectID: row.ProjectID, CreatedAt: row.CreatedAt,
+		}
+		uname, uemail := "", ""
+		if row.UserName.Valid {
+			uname = row.UserName.String
+		}
+		if row.UserEmail.Valid {
+			uemail = row.UserEmail.String
+		}
+		resp := toDomainResp(&m)
+		out[i] = eventdomain.EventResponseWithParticipant{
+			Response:  *resp,
+			UserName:  uname,
+			UserEmail: uemail,
+			Answers:   byResp[resp.ID],
+		}
+	}
+	return out, nil
 }
 
 func (r *RepositoryPG) SubmitResponse(ctx context.Context, eventID, userID string, projectID *string, answers []eventdomain.AnswerInput) error {

@@ -68,6 +68,10 @@ func (s *Service) SetEventProjects(ctx context.Context, eventID string, projectI
 	return s.repo.SetInstanceProjects(ctx, eventID, projectIDs)
 }
 
+func (s *Service) DeleteEvent(ctx context.Context, id string) error {
+	return s.repo.DeleteInstance(ctx, id)
+}
+
 func (s *Service) CreateModule(ctx context.Context, eventID, title string, typ eventdomain.ModuleType, sort int, required bool) (*eventdomain.EventModule, error) {
 	m := &eventdomain.EventModule{
 		EventInstanceID: eventID,
@@ -110,6 +114,14 @@ func (s *Service) DeleteModule(ctx context.Context, id string) error {
 
 func (s *Service) SetModuleProjects(ctx context.Context, moduleID string, projectIDs []string) error {
 	return s.repo.SetModuleProjects(ctx, moduleID, projectIDs)
+}
+
+func (s *Service) DeleteOptionGroup(ctx context.Context, id string) error {
+	return s.repo.DeleteOptionGroup(ctx, id)
+}
+
+func (s *Service) DeleteOption(ctx context.Context, id string) error {
+	return s.repo.DeleteOption(ctx, id)
 }
 
 func (s *Service) CreateOptionGroup(ctx context.Context, moduleID, name string, typ eventdomain.OptionGroupType, sort int, required bool) (*eventdomain.EventOptionGroup, error) {
@@ -192,4 +204,11 @@ func (s *Service) SubmitResponse(ctx context.Context, eventID, userID string, pr
 
 func (s *Service) GetMyResponse(ctx context.Context, eventID, userID string) (*eventdomain.EventResponse, []eventdomain.EventResponseAnswer, error) {
 	return s.repo.LoadUserResponseDetail(ctx, eventID, userID)
+}
+
+func (s *Service) ListResponsesForAdmin(ctx context.Context, eventID string) ([]eventdomain.EventResponseWithParticipant, error) {
+	if _, err := s.repo.FindInstanceByID(ctx, eventID); err != nil {
+		return nil, err
+	}
+	return s.repo.ListResponsesForEvent(ctx, eventID)
 }

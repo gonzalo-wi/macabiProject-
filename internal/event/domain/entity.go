@@ -91,6 +91,14 @@ type EventResponseAnswer struct {
 	TextValue  *string
 }
 
+// EventResponseWithParticipant is an event response joined with basic user profile (admin listings).
+type EventResponseWithParticipant struct {
+	Response  EventResponse
+	UserName  string
+	UserEmail string
+	Answers   []EventResponseAnswer
+}
+
 // EventDetail is the event aggregate for GET /events/:id
 type EventDetail struct {
 	Instance   EventInstance
