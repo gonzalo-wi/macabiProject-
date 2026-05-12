@@ -21,7 +21,6 @@ type UserModel struct {
 	Role      string `gorm:"not null;default:'user'"`
 	Active    bool   `gorm:"not null;default:true"`
 	CreatedAt time.Time
-	UpdatedAt time.Time
 }
 
 func (UserModel) TableName() string {
@@ -40,8 +39,9 @@ func (r *UserRepositoryPG) dbx(ctx context.Context) *gorm.DB {
 	return database.TxFromCtx(ctx, r.db).WithContext(ctx)
 }
 
-func RunMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(&UserModel{}, &UserInvitationModel{}, &PasswordResetTokenModel{})
+func RunMigrations(_ *gorm.DB) error {
+	// Schema is managed with external SQL migrations.
+	return nil
 }
 
 func (r *UserRepositoryPG) Save(ctx context.Context, user *userdomain.User) error {
@@ -51,7 +51,6 @@ func (r *UserRepositoryPG) Save(ctx context.Context, user *userdomain.User) erro
 	}
 	user.ID = model.ID
 	user.CreatedAt = model.CreatedAt
-	user.UpdatedAt = model.UpdatedAt
 	return nil
 }
 
@@ -136,6 +135,5 @@ func toDomain(m *UserModel) *userdomain.User {
 		Role:      userdomain.Role(m.Role),
 		Active:    m.Active,
 		CreatedAt: m.CreatedAt,
-		UpdatedAt: m.UpdatedAt,
 	}
 }

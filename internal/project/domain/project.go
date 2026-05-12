@@ -9,24 +9,31 @@ type Project struct {
 	ID          string
 	Name        string
 	Description string
-	AdminUserID string
-	Active      bool
 	CreatedAt   time.Time
-	UpdatedAt   time.Time
 }
 
-func NewProject(name, description, adminUserID string) (*Project, error) {
+func NewProject(name, description string) (*Project, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil, ErrEmptyName
 	}
-	if adminUserID == "" {
-		return nil, ErrMissingAdmin
-	}
 	return &Project{
 		Name:        name,
 		Description: description,
-		AdminUserID: adminUserID,
-		Active:      true,
 	}, nil
+}
+
+type ProjectMemberRole string
+
+const (
+	MemberRoleCoordinator ProjectMemberRole = "coordinator"
+	MemberRoleMadrij      ProjectMemberRole = "madrij"
+)
+
+type ProjectMember struct {
+	ID        string
+	ProjectID string
+	UserID    string
+	Role      ProjectMemberRole
+	CreatedAt time.Time
 }

@@ -1,0 +1,487 @@
+{
+  "info": {
+    "_postman_id": "macabi-api-event-schema",
+    "name": "Macabi API",
+    "description": "Backend Macabi: auth, usuarios, proyectos, eventos/jornadas. Tras Login, copiá el token a la variable de colección `token` (o usá un script en Login). Rutas bajo `/api` requieren `Authorization: Bearer {{token}}`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "eventInstanceId", "value": "" },
+    { "key": "moduleId", "value": "" },
+    { "key": "invitationId", "value": "" },
+    { "key": "optionId", "value": "" },
+    { "key": "groupId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth (sin token)",
+      "item": [
+        {
+          "name": "POST Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json && json.token) { pm.collectionVariables.set('token', json.token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"your-password\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "POST Register (disabled)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"email\": \"\",\n  \"password\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "POST Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/forgot-password"
+          }
+        },
+        {
+          "name": "POST Reset password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"...\",\n  \"new_password\": \"nuevaPass123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/reset-password"
+          }
+        },
+        {
+          "name": "POST Accept invitation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"...\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/accept-invitation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "API — Usuario actual",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "GET Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/me"
+          }
+        },
+        {
+          "name": "PATCH Me password",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"old\",\n  \"new_password\": \"newpass123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/me/password"
+          }
+        }
+      ]
+    },
+    {
+      "name": "API — Usuarios e invitaciones (admin)",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "GET Users (paginado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users?page=1&page_size=10"
+          }
+        },
+        {
+          "name": "PUT User",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nombre\",\n  \"email\": \"mail@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          }
+        },
+        {
+          "name": "PATCH User role",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"user\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}/role"
+          }
+        },
+        {
+          "name": "PATCH User status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}/status"
+          }
+        },
+        {
+          "name": "GET Invitations pending",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/invitations"
+          }
+        },
+        {
+          "name": "POST Invitation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"nuevo@example.com\",\n  \"name\": \"Nombre\",\n  \"role\": \"user\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/invitations"
+          }
+        },
+        {
+          "name": "POST Resend invitation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/invitations/{{invitationId}}/resend"
+          }
+        },
+        {
+          "name": "DELETE Invitation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/invitations/{{invitationId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "API — Proyectos",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "GET Projects list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects?page=1&page_size=10"
+          }
+        },
+        {
+          "name": "GET Project by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}"
+          }
+        },
+        {
+          "name": "POST Project (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mi proyecto\",\n  \"description\": \"Opcional\"\n}"
+            },
+            "url": "{{baseUrl}}/api/projects"
+          }
+        },
+        {
+          "name": "PUT Project (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mi proyecto\",\n  \"description\": \"Actualizado\"\n}"
+            },
+            "url": "{{baseUrl}}/api/projects/{{projectId}}"
+          }
+        },
+        {
+          "name": "DELETE Project (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}"
+          }
+        },
+        {
+          "name": "GET Project members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/members"
+          }
+        },
+        {
+          "name": "POST Project member (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"role\": \"madrij\"\n}"
+            },
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/members"
+          }
+        },
+        {
+          "name": "DELETE Project member (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/members/{{userId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "API — Eventos / jornadas",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "GET Event instances list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/event-instances?page=1&page_size=10"
+          }
+        },
+        {
+          "name": "GET Event instance detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/event-instances/{{eventInstanceId}}"
+          }
+        },
+        {
+          "name": "GET My response for event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/event-instances/{{eventInstanceId}}/responses/me"
+          }
+        },
+        {
+          "name": "POST Submit response",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_id\": null,\n  \"answers\": [\n    {\n      \"group_id\": \"uuid-grupo\",\n      \"option_id\": \"uuid-opcion\",\n      \"text_value\": null\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/event-instances/{{eventInstanceId}}/responses"
+          }
+        },
+        {
+          "name": "POST Event instance (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Jornada mayo\",\n  \"type\": \"activity\",\n  \"starts_at\": \"2026-05-10T10:00:00Z\",\n  \"response_deadline_at\": \"2026-05-09T18:00:00Z\",\n  \"status\": \"draft\"\n}"
+            },
+            "url": "{{baseUrl}}/api/event-instances"
+          }
+        },
+        {
+          "name": "PATCH Event instance (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Jornada mayo\",\n  \"type\": \"activity\",\n  \"starts_at\": \"2026-05-10T10:00:00Z\",\n  \"response_deadline_at\": null,\n  \"status\": \"open\"\n}"
+            },
+            "url": "{{baseUrl}}/api/event-instances/{{eventInstanceId}}"
+          }
+        },
+        {
+          "name": "PUT Event instance projects (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_ids\": [\"{{projectId}}\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/event-instances/{{eventInstanceId}}/projects"
+          }
+        },
+        {
+          "name": "POST Event module (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_instance_id\": \"{{eventInstanceId}}\",\n  \"title\": \"Comida\",\n  \"type\": \"meal\",\n  \"sort_order\": 0,\n  \"is_required\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/event-modules"
+          }
+        },
+        {
+          "name": "PATCH Event module (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Comida\",\n  \"type\": \"meal\",\n  \"sort_order\": 0,\n  \"is_required\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/event-modules/{{moduleId}}"
+          }
+        },
+        {
+          "name": "DELETE Event module (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/event-modules/{{moduleId}}"
+          }
+        },
+        {
+          "name": "PUT Event module projects (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"project_ids\": [\"{{projectId}}\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/event-modules/{{moduleId}}/projects"
+          }
+        },
+        {
+          "name": "POST Option group (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"module_id\": \"{{moduleId}}\",\n  \"name\": \"Menú\",\n  \"type\": \"single_choice\",\n  \"sort_order\": 0,\n  \"is_required\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/event-option-groups"
+          }
+        },
+        {
+          "name": "PATCH Option group (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Menú actualizado\",\n  \"type\": \"single_choice\",\n  \"sort_order\": 1,\n  \"is_required\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/event-option-groups/{{groupId}}"
+          }
+        },
+        {
+          "name": "POST Option (admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group_id\": \"{{groupId}}\",\n  \"label\": \"Opción A\",\n  \"max_capacity\": 20,\n  \"sort_order\": 0\n}"
+            },
+            "url": "{{baseUrl}}/api/event-options"
+          }
+        },
+        {
+          "name": "PATCH Option (admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Opción A\",\n  \"max_capacity\": 30,\n  \"sort_order\": 0,\n  \"current_count\": null\n}"
+            },
+            "url": "{{baseUrl}}/api/event-options/{{optionId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

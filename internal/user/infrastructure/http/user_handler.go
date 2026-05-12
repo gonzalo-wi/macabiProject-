@@ -14,16 +14,16 @@ import (
 )
 
 type UserHandler struct {
-	getCurrentUserUC           *userusecases.GetCurrentUser
-	changeRoleUC               *userusecases.ChangeRole
-	listUsersUC                *userusecases.ListUsers
-	setUserStatusUC            *userusecases.SetUserStatus
-	updateUserUC               *userusecases.UpdateUser
-	changePasswordUC           *userusecases.ChangePassword
-	createUserInvitation       *userusecases.CreateUserInvitation
-	listPendingInvitationsUC   *userusecases.ListPendingInvitations
-	resendUserInvitationUC     *userusecases.ResendUserInvitation
-	revokeUserInvitationUC     *userusecases.RevokeUserInvitation
+	getCurrentUserUC         *userusecases.GetCurrentUser
+	changeRoleUC             *userusecases.ChangeRole
+	listUsersUC              *userusecases.ListUsers
+	setUserStatusUC          *userusecases.SetUserStatus
+	updateUserUC             *userusecases.UpdateUser
+	changePasswordUC         *userusecases.ChangePassword
+	createUserInvitation     *userusecases.CreateUserInvitation
+	listPendingInvitationsUC *userusecases.ListPendingInvitations
+	resendUserInvitationUC   *userusecases.ResendUserInvitation
+	revokeUserInvitationUC   *userusecases.RevokeUserInvitation
 }
 
 func NewUserHandler(

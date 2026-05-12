@@ -57,9 +57,9 @@ func (m *BrevoTransactionalMailer) send(ctx context.Context, toEmail, subject, h
 	}
 
 	body := brevoSendEmailRequest{
-		Sender:  brevoSender{Email: m.from, Name: brevoSenderDisplayName},
-		To:      []brevoRecipient{{Email: toEmail}},
-		Subject: subject,
+		Sender:      brevoSender{Email: m.from, Name: brevoSenderDisplayName},
+		To:          []brevoRecipient{{Email: toEmail}},
+		Subject:     subject,
 		HTMLContent: html,
 	}
 	raw, err := json.Marshal(body)

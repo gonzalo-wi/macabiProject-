@@ -14,7 +14,6 @@ type User struct {
 	Role      Role
 	Active    bool
 	CreatedAt time.Time
-	UpdatedAt time.Time
 }
 
 func NewUser(name, email, hashedPassword string) (*User, error) {
@@ -51,7 +50,7 @@ func ValidateRawPassword(password string) error {
 }
 
 func (u *User) ChangeRole(newRole Role, changedBy *User) error {
-	if !changedBy.Role.IsAtLeast(RoleSuperAdmin) {
+	if !changedBy.Role.IsAtLeast(RoleAdmin) {
 		return ErrForbidden
 	}
 	u.Role = newRole

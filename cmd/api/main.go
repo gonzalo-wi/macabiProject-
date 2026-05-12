@@ -3,12 +3,9 @@ package main
 import (
 	"log"
 
-	mealpersistence "macabi-back/internal/meal/infrastructure/persistence"
-	projectpersistence "macabi-back/internal/project/infrastructure/persistence"
 	"macabi-back/internal/shared/config"
 	"macabi-back/internal/shared/database"
 	userpersistence "macabi-back/internal/user/infrastructure/persistence"
-	attendancepersistence "macabi-back/internal/attendance/infrastructure/persistence"
 )
 
 func main() {
@@ -27,18 +24,6 @@ func main() {
 
 	if err := userpersistence.RunMigrations(db); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	if err := mealpersistence.RunMigrations(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	if err := projectpersistence.RunMigrations(db); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	if err := attendancepersistence.RunMigrations(db); err != nil {
-    	log.Fatalf("Failed to run migrations: %v", err)
 	}
 
 	deps := BuildDependencies(db, cfg)

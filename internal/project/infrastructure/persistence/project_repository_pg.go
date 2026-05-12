@@ -3,6 +3,7 @@ package projectpersistence
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -16,13 +17,20 @@ type ProjectModel struct {
 	ID          string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	Name        string `gorm:"not null"`
 	Description string
-	AdminUserID string `gorm:"type:uuid;not null"`
-	Active      bool   `gorm:"not null;default:true"`
 	CreatedAt   time.Time
-	UpdatedAt   time.Time
 }
 
 func (ProjectModel) TableName() string { return "projects" }
+
+type ProjectMemberModel struct {
+	ID        string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	ProjectID string `gorm:"type:uuid;not null"`
+	UserID    string `gorm:"type:uuid;not null"`
+	Role      string `gorm:"not null;default:'madrij'"`
+	CreatedAt time.Time
+}
+
+func (ProjectMemberModel) TableName() string { return "project_members" }
 
 type ProjectRepositoryPG struct {
 	db *gorm.DB
@@ -32,8 +40,8 @@ func NewProjectRepositoryPG(db *gorm.DB) *ProjectRepositoryPG {
 	return &ProjectRepositoryPG{db: db}
 }
 
-func RunMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(&ProjectModel{})
+func RunMigrations(_ *gorm.DB) error {
+	return nil
 }
 
 func (r *ProjectRepositoryPG) Save(ctx context.Context, p *projectdomain.Project) error {
@@ -43,7 +51,6 @@ func (r *ProjectRepositoryPG) Save(ctx context.Context, p *projectdomain.Project
 	}
 	p.ID = m.ID
 	p.CreatedAt = m.CreatedAt
-	p.UpdatedAt = m.UpdatedAt
 	return nil
 }
 
@@ -84,18 +91,68 @@ func (r *ProjectRepositoryPG) Update(ctx context.Context, p *projectdomain.Proje
 	return r.db.WithContext(ctx).Model(&ProjectModel{}).
 		Where("id = ?", p.ID).
 		Updates(map[string]interface{}{
-			"name":          p.Name,
-			"description":   p.Description,
-			"admin_user_id": p.AdminUserID,
-			"active":        p.Active,
+			"name":        p.Name,
+			"description": p.Description,
 		}).Error
 }
 
 func (r *ProjectRepositoryPG) Delete(ctx context.Context, id string) error {
-	return r.db.WithContext(ctx).Delete(&ProjectModel{}, "id = ?", id).Error
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("project_id = ?", id).Delete(&ProjectMemberModel{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&ProjectModel{}, "id = ?", id).Error
+	})
 }
 
-// Ensure interface compliance
+func (r *ProjectRepositoryPG) ListMembers(ctx context.Context, projectID string) ([]projectdomain.ProjectMember, error) {
+	var rows []ProjectMemberModel
+	if err := r.db.WithContext(ctx).Where("project_id = ?", projectID).Order("created_at ASC").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]projectdomain.ProjectMember, len(rows))
+	for i, row := range rows {
+		out[i] = *toDomainMember(row)
+	}
+	return out, nil
+}
+
+func (r *ProjectRepositoryPG) AddMember(ctx context.Context, m *projectdomain.ProjectMember) error {
+	row := ProjectMemberModel{
+		ProjectID: m.ProjectID,
+		UserID:    m.UserID,
+		Role:      string(m.Role),
+	}
+	if err := r.db.WithContext(ctx).Create(&row).Error; err != nil {
+		if isUniqueViolation(err) {
+			return projectdomain.ErrDuplicateMember
+		}
+		return err
+	}
+	m.ID = row.ID
+	m.CreatedAt = row.CreatedAt
+	return nil
+}
+
+func (r *ProjectRepositoryPG) RemoveMember(ctx context.Context, projectID, userID string) error {
+	res := r.db.WithContext(ctx).Where("project_id = ? AND user_id = ?", projectID, userID).Delete(&ProjectMemberModel{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return projectdomain.ErrMemberNotFound
+	}
+	return nil
+}
+
+func isUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Postgres unique_violation 23505
+	return strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "duplicate key")
+}
+
 var _ projectports.ProjectRepository = (*ProjectRepositoryPG)(nil)
 
 func toProjectModel(p *projectdomain.Project) ProjectModel {
@@ -103,8 +160,6 @@ func toProjectModel(p *projectdomain.Project) ProjectModel {
 		ID:          p.ID,
 		Name:        p.Name,
 		Description: p.Description,
-		AdminUserID: p.AdminUserID,
-		Active:      p.Active,
 	}
 }
 
@@ -113,9 +168,16 @@ func toDomainProject(m ProjectModel) *projectdomain.Project {
 		ID:          m.ID,
 		Name:        m.Name,
 		Description: m.Description,
-		AdminUserID: m.AdminUserID,
-		Active:      m.Active,
 		CreatedAt:   m.CreatedAt,
-		UpdatedAt:   m.UpdatedAt,
+	}
+}
+
+func toDomainMember(m ProjectMemberModel) *projectdomain.ProjectMember {
+	return &projectdomain.ProjectMember{
+		ID:        m.ID,
+		ProjectID: m.ProjectID,
+		UserID:    m.UserID,
+		Role:      projectdomain.ProjectMemberRole(m.Role),
+		CreatedAt: m.CreatedAt,
 	}
 }

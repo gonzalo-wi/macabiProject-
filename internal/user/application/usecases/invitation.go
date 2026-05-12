@@ -19,11 +19,11 @@ import (
 )
 
 type CreateUserInvitation struct {
-	users    userports.UserRepository
-	invites  userports.UserInvitationRepository
-	mailer   userports.InvitationMailer
-	baseURL  string
-	ttl      time.Duration
+	users   userports.UserRepository
+	invites userports.UserInvitationRepository
+	mailer  userports.InvitationMailer
+	baseURL string
+	ttl     time.Duration
 }
 
 func NewCreateUserInvitation(
@@ -43,11 +43,11 @@ func NewCreateUserInvitation(
 }
 
 type CreateUserInvitationInput struct {
-	Email          string
-	Name           string
-	RequestedRole  string
-	InviterID      string
-	InviterRole    userdomain.Role
+	Email         string
+	Name          string
+	RequestedRole string
+	InviterID     string
+	InviterRole   userdomain.Role
 }
 
 func (uc *CreateUserInvitation) Execute(ctx context.Context, in CreateUserInvitationInput) error {
@@ -83,7 +83,7 @@ func (uc *CreateUserInvitation) Execute(ctx context.Context, in CreateUserInvita
 		return err
 	}
 	expires := time.Now().Add(uc.ttl)
-	if err := uc.invites.Create(ctx, email, name, role, in.InviterID, hash, expires); err != nil {
+	if err := uc.invites.Create(ctx, email, name, role, hash, expires); err != nil {
 		return err
 	}
 
@@ -95,10 +95,6 @@ func resolveInvitationRole(inviter userdomain.Role, requested string) (userdomai
 	if !inviter.IsAtLeast(userdomain.RoleAdmin) {
 		return "", userdomain.ErrForbidden
 	}
-	if inviter == userdomain.RoleAdmin {
-		return userdomain.RoleUser, nil
-	}
-	// super_admin
 	r := strings.TrimSpace(strings.ToLower(requested))
 	if r == "" || r == "user" {
 		return userdomain.RoleUser, nil
@@ -262,7 +258,7 @@ func (uc *ResendUserInvitation) Execute(ctx context.Context, invitationID string
 		return err
 	}
 	expires := time.Now().Add(uc.ttl)
-	if err := uc.invites.Create(ctx, inv.Email, inv.Name, inv.Role, inv.InvitedByUserID, hash, expires); err != nil {
+	if err := uc.invites.Create(ctx, inv.Email, inv.Name, inv.Role, hash, expires); err != nil {
 		return err
 	}
 	acceptURL := fmt.Sprintf("%s/aceptar-invitacion?token=%s", uc.baseURL, url.QueryEscape(raw))
