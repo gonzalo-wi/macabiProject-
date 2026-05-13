@@ -1,0 +1,18 @@
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# Binarios locales
+server
+*.exe
+
+# Tests
+*_test.go
+
+# Archivos del editor
+.vscode
+*.idea

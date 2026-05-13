@@ -1,0 +1,12 @@
+services:
+  api:
+    build: .
+    image: macabi-api:latest
+    container_name: macabi-api
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      PORT: "8081"
