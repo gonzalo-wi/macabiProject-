@@ -110,8 +110,46 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	)
 
 	eventRepo := eventpersistence.NewRepositoryPG(db)
-	eventSvc := eventusecases.NewService(eventRepo)
-	eventHandler := eventhttp.NewHandler(eventSvc)
+	createEventUC := eventusecases.NewCreateEvent(eventRepo)
+	listEventsUC := eventusecases.NewListEvents(eventRepo)
+	getEventDetailUC := eventusecases.NewGetEventDetail(eventRepo)
+	updateEventUC := eventusecases.NewUpdateEvent(eventRepo)
+	deleteEventUC := eventusecases.NewDeleteEvent(eventRepo)
+	setEventProjectsUC := eventusecases.NewSetEventProjects(eventRepo)
+	createModuleUC := eventusecases.NewCreateModule(eventRepo)
+	updateModuleUC := eventusecases.NewUpdateModule(eventRepo)
+	deleteModuleUC := eventusecases.NewDeleteModule(eventRepo)
+	setModuleProjectsUC := eventusecases.NewSetModuleProjects(eventRepo)
+	createOptionGroupUC := eventusecases.NewCreateOptionGroup(eventRepo)
+	updateOptionGroupUC := eventusecases.NewUpdateOptionGroup(eventRepo)
+	deleteOptionGroupUC := eventusecases.NewDeleteOptionGroup(eventRepo)
+	createOptionUC := eventusecases.NewCreateOption(eventRepo)
+	updateOptionUC := eventusecases.NewUpdateOption(eventRepo)
+	deleteOptionUC := eventusecases.NewDeleteOption(eventRepo)
+	submitResponseUC := eventusecases.NewSubmitResponse(eventRepo)
+	getMyResponseUC := eventusecases.NewGetMyResponse(eventRepo)
+	listEventResponsesUC := eventusecases.NewListEventResponses(eventRepo)
+	eventHandler := eventhttp.NewHandler(
+		createEventUC,
+		listEventsUC,
+		getEventDetailUC,
+		updateEventUC,
+		deleteEventUC,
+		setEventProjectsUC,
+		createModuleUC,
+		updateModuleUC,
+		deleteModuleUC,
+		setModuleProjectsUC,
+		createOptionGroupUC,
+		updateOptionGroupUC,
+		deleteOptionGroupUC,
+		createOptionUC,
+		updateOptionUC,
+		deleteOptionUC,
+		submitResponseUC,
+		getMyResponseUC,
+		listEventResponsesUC,
+	)
 
 	return &Dependencies{
 		AuthHandler:    authHandler,
