@@ -24,8 +24,8 @@ func (ProjectModel) TableName() string { return "projects" }
 
 type ProjectMemberModel struct {
 	ID        string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	ProjectID string `gorm:"type:uuid;not null"`
-	UserID    string `gorm:"type:uuid;not null"`
+	ProjectID string `gorm:"type:uuid;not null;uniqueIndex:idx_project_member"`
+	UserID    string `gorm:"type:uuid;not null;uniqueIndex:idx_project_member"`
 	Role      string `gorm:"not null;default:'madrij'"`
 	CreatedAt time.Time
 }

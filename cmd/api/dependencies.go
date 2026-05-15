@@ -9,6 +9,9 @@ import (
 	projectpersistence "macabi-back/internal/project/infrastructure/persistence"
 	"macabi-back/internal/shared/config"
 	"macabi-back/internal/shared/database"
+	stockusecases "macabi-back/internal/stock/application/usecases"
+	stockhttp "macabi-back/internal/stock/infrastructure/http"
+	stockpersistence "macabi-back/internal/stock/infrastructure/persistence"
 	userports "macabi-back/internal/user/application/ports"
 	userusecases "macabi-back/internal/user/application/usecases"
 	userhttp "macabi-back/internal/user/infrastructure/http"
@@ -24,6 +27,7 @@ type Dependencies struct {
 	UserHandler    *userhttp.UserHandler
 	ProjectHandler *projecthttp.ProjectHandler
 	EventHandler   *eventhttp.Handler
+	StockHandler   *stockhttp.Handler
 	TokenPrv       userports.TokenProvider
 }
 
@@ -151,11 +155,35 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		listEventResponsesUC,
 	)
 
+	stockRepo := stockpersistence.NewStockRepositoryPG(db)
+	if err := stockpersistence.RunMigrations(db); err != nil {
+		panic("stock migrations failed: " + err.Error())
+	}
+	stockHandler := stockhttp.NewHandler(
+		stockusecases.NewCreateResource(stockRepo),
+		stockusecases.NewListResources(stockRepo),
+		stockusecases.NewGetResource(stockRepo),
+		stockusecases.NewUpdateResource(stockRepo),
+		stockusecases.NewDeleteResource(stockRepo),
+		stockusecases.NewCreateRequest(stockRepo, stockRepo),
+		stockusecases.NewApproveRequest(stockRepo, stockRepo),
+		stockusecases.NewRejectRequest(stockRepo, stockRepo),
+		stockusecases.NewDeliverRequest(stockRepo, stockRepo),
+		stockusecases.NewReturnRequest(stockRepo, stockRepo),
+		stockusecases.NewListRequests(stockRepo),
+		stockusecases.NewListMyRequests(stockRepo),
+		stockusecases.NewGetRequestDetail(stockRepo),
+		stockusecases.NewListNotifications(stockRepo),
+		stockusecases.NewMarkNotificationRead(stockRepo),
+		stockusecases.NewUnreadNotificationCount(stockRepo),
+	)
+
 	return &Dependencies{
 		AuthHandler:    authHandler,
 		UserHandler:    userHandler,
 		ProjectHandler: projectHandler,
 		EventHandler:   eventHandler,
+		StockHandler:   stockHandler,
 		TokenPrv:       jwtProvider,
 	}
 }

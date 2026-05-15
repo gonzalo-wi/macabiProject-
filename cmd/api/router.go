@@ -6,6 +6,7 @@ import (
 	eventhttp "macabi-back/internal/event/infrastructure/http"
 	projecthttp "macabi-back/internal/project/infrastructure/http"
 	"macabi-back/internal/shared/middleware"
+	stockhttp "macabi-back/internal/stock/infrastructure/http"
 	userhttp "macabi-back/internal/user/infrastructure/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,7 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	userhttp.RegisterRoutes(r, deps.AuthHandler, deps.UserHandler, deps.TokenPrv)
 	projecthttp.RegisterRoutes(r, deps.ProjectHandler, deps.TokenPrv)
 	eventhttp.RegisterRoutes(r, deps.EventHandler, deps.TokenPrv)
+	stockhttp.RegisterRoutes(r, deps.StockHandler, deps.TokenPrv)
 
 	return r
 }

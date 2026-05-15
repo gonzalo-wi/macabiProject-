@@ -7,8 +7,9 @@ import (
 )
 
 type CreateProjectRequest struct {
-	Name        string `json:"name" binding:"required"`
-	Description string `json:"description"`
+	Name          string `json:"name" binding:"required"`
+	Description   string `json:"description"`
+	CoordinatorID string `json:"coordinator_id" binding:"required"`
 }
 
 type UpdateProjectRequest struct {
@@ -63,8 +64,9 @@ func toProjectListResponse(result pagination.Result[projectdomain.Project]) pagi
 
 func (r CreateProjectRequest) toInput() projectusecases.CreateProjectInput {
 	return projectusecases.CreateProjectInput{
-		Name:        r.Name,
-		Description: r.Description,
+		Name:          r.Name,
+		Description:   r.Description,
+		CoordinatorID: r.CoordinatorID,
 	}
 }
 

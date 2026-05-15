@@ -14,7 +14,8 @@ func httpStatus(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, projectdomain.ErrEmptyName),
 		errors.Is(err, projectdomain.ErrInvalidMemberRole),
-		errors.Is(err, projectdomain.ErrDuplicateMember):
+		errors.Is(err, projectdomain.ErrDuplicateMember),
+		errors.Is(err, projectdomain.ErrMissingCoordinator):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
