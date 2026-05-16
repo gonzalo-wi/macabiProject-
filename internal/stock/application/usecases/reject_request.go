@@ -17,10 +17,13 @@ type RejectRequestInput struct {
 type RejectRequest struct {
 	repo          stockports.StockRepository
 	projectReader stockports.ProjectMemberReader
+	emailReader   stockports.UserEmailReader
+	mailer        stockports.StockMailer
+	pushNotifier  stockports.UserPushNotifier
 }
 
-func NewRejectRequest(repo stockports.StockRepository, projectReader stockports.ProjectMemberReader) *RejectRequest {
-	return &RejectRequest{repo: repo, projectReader: projectReader}
+func NewRejectRequest(repo stockports.StockRepository, projectReader stockports.ProjectMemberReader, emailReader stockports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *RejectRequest {
+	return &RejectRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer, pushNotifier: pushNotifier}
 }
 
 func (uc *RejectRequest) Execute(ctx context.Context, input RejectRequestInput) error {
@@ -42,5 +45,19 @@ func (uc *RejectRequest) Execute(ctx context.Context, input RejectRequestInput) 
 		}
 	}
 
-	return uc.repo.UpdateRequestStatus(ctx, input.RequestID, stockdomain.RequestStatusRejected)
+	if err := uc.repo.UpdateRequestStatus(ctx, input.RequestID, stockdomain.RequestStatusRejected); err != nil {
+		return err
+	}
+	// Best-effort email + push to the requester.
+	if resource, err := uc.repo.FindResourceByID(ctx, req.ResourceID); err == nil {
+		if email, err := uc.emailReader.FindEmailByID(ctx, req.RequestedByID); err == nil {
+			_ = uc.mailer.NotifyRequesterRejected(ctx, email, resource.Name, req.Quantity)
+		}
+		uc.pushNotifier.Notify(ctx, req.RequestedByID,
+			"Solicitud rechazada",
+			resource.Name+" — tu reserva fue rechazada",
+			"/stock/requests/my",
+		)
+	}
+	return nil
 }

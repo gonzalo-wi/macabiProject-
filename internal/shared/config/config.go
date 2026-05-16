@@ -25,6 +25,10 @@ type Config struct {
 	FrontendPublicURL string
 	InvitationTTL     time.Duration
 	PasswordResetTTL  time.Duration
+	// Web Push (VAPID) — optional; push notifications are skipped if unset.
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubject    string // e.g. "mailto:admin@example.org"
 }
 
 func (c *Config) DSN() string {
@@ -100,6 +104,9 @@ func Load() *Config {
 		FrontendPublicURL: strings.TrimSpace(os.Getenv("FRONTEND_PUBLIC_URL")),
 		InvitationTTL:     invTTL,
 		PasswordResetTTL:  resetTTL,
+		VAPIDPublicKey:    strings.TrimSpace(os.Getenv("VAPID_PUBLIC_KEY")),
+		VAPIDPrivateKey:   strings.TrimSpace(os.Getenv("VAPID_PRIVATE_KEY")),
+		VAPIDSubject:      strings.TrimSpace(os.Getenv("VAPID_SUBJECT")),
 	}
 }
 

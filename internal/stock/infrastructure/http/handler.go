@@ -29,6 +29,9 @@ type Handler struct {
 	listNotificationsUC    *stockusecases.ListNotifications
 	markNotificationReadUC *stockusecases.MarkNotificationRead
 	unreadCountUC          *stockusecases.UnreadNotificationCount
+	registerPushSubUC      *stockusecases.RegisterPushSubscription
+	unregisterPushSubUC    *stockusecases.UnregisterPushSubscription
+	vapidPublicKey         string
 }
 
 func NewHandler(
@@ -48,6 +51,9 @@ func NewHandler(
 	listNotificationsUC *stockusecases.ListNotifications,
 	markNotificationReadUC *stockusecases.MarkNotificationRead,
 	unreadCountUC *stockusecases.UnreadNotificationCount,
+	registerPushSubUC *stockusecases.RegisterPushSubscription,
+	unregisterPushSubUC *stockusecases.UnregisterPushSubscription,
+	vapidPublicKey string,
 ) *Handler {
 	return &Handler{
 		createResourceUC:       createResourceUC,
@@ -66,6 +72,9 @@ func NewHandler(
 		listNotificationsUC:    listNotificationsUC,
 		markNotificationReadUC: markNotificationReadUC,
 		unreadCountUC:          unreadCountUC,
+		registerPushSubUC:      registerPushSubUC,
+		unregisterPushSubUC:    unregisterPushSubUC,
+		vapidPublicKey:         vapidPublicKey,
 	}
 }
 
@@ -268,4 +277,52 @@ func (h *Handler) UnreadCount(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"unread_count": count})
+}
+
+// --- Web Push handlers ---
+
+func (h *Handler) GetVAPIDPublicKey(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"public_key": h.vapidPublicKey})
+}
+
+type registerPushSubscriptionRequest struct {
+	Endpoint string `json:"endpoint" binding:"required"`
+	P256DH   string `json:"p256dh"   binding:"required"`
+	Auth     string `json:"auth"     binding:"required"`
+}
+
+func (h *Handler) RegisterPushSubscription(c *gin.Context) {
+	userID := c.GetString(userhttp.AuthUserIDKey)
+	var req registerPushSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	if err := h.registerPushSubUC.Execute(c.Request.Context(), stockusecases.RegisterPushSubscriptionInput{
+		UserID:   userID,
+		Endpoint: req.Endpoint,
+		P256DH:   req.P256DH,
+		Auth:     req.Auth,
+	}); err != nil {
+		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+type unregisterPushSubscriptionRequest struct {
+	Endpoint string `json:"endpoint" binding:"required"`
+}
+
+func (h *Handler) UnregisterPushSubscription(c *gin.Context) {
+	var req unregisterPushSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	if err := h.unregisterPushSubUC.Execute(c.Request.Context(), req.Endpoint); err != nil {
+		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

@@ -22,10 +22,13 @@ type CreateRequestInput struct {
 type CreateRequest struct {
 	repo          stockports.StockRepository
 	projectReader stockports.ProjectMemberReader
+	emailReader   stockports.UserEmailReader
+	mailer        stockports.StockMailer
+	pushNotifier  stockports.UserPushNotifier
 }
 
-func NewCreateRequest(repo stockports.StockRepository, projectReader stockports.ProjectMemberReader) *CreateRequest {
-	return &CreateRequest{repo: repo, projectReader: projectReader}
+func NewCreateRequest(repo stockports.StockRepository, projectReader stockports.ProjectMemberReader, emailReader stockports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *CreateRequest {
+	return &CreateRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer, pushNotifier: pushNotifier}
 }
 
 func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) (*stockdomain.ResourceRequest, error) {
@@ -75,6 +78,21 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 					Message:   msg,
 				}
 				_ = uc.repo.SaveNotification(ctx, notif)
+			}
+			// Best-effort email + push to all coordinators.
+			if emails, err := uc.emailReader.FindEmailsByIDs(ctx, coordinators); err == nil {
+				addrs := make([]string, 0, len(emails))
+				for _, e := range emails {
+					addrs = append(addrs, e)
+				}
+				_ = uc.mailer.NotifyCoordinatorsNewRequest(ctx, addrs, resource.Name, input.Quantity)
+			}
+			for _, coordinatorID := range coordinators {
+				uc.pushNotifier.Notify(ctx, coordinatorID,
+					"Nueva solicitud de reserva",
+					fmt.Sprintf("%d unidad(es) de \"%s\" esperan aprobación", input.Quantity, resource.Name),
+					"/stock/requests",
+				)
 			}
 		}
 	}

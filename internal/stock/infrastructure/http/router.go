@@ -43,5 +43,10 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 		api.GET("/stock/notifications/unread-count", h.UnreadCount)
 		api.GET("/stock/notifications", h.ListNotifications)
 		api.PATCH("/stock/notifications/:id/read", h.MarkNotificationRead)
+
+		// Web Push subscriptions
+		api.GET("/push/vapid-public-key", h.GetVAPIDPublicKey)
+		api.POST("/push/subscriptions", h.RegisterPushSubscription)
+		api.DELETE("/push/subscriptions", h.UnregisterPushSubscription)
 	}
 }
