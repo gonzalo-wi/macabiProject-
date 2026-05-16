@@ -39,9 +39,15 @@ func NewWebPushNotifier(
 
 func (n *WebPushNotifier) Notify(ctx context.Context, userID string, title, body, actionURL string) {
 	subs, err := n.subRepo.FindByUserID(ctx, userID)
-	if err != nil || len(subs) == 0 {
+	if err != nil {
+		log.Printf("webpush: error fetching subscriptions for user=%s: %v", userID, err)
 		return
 	}
+	if len(subs) == 0 {
+		log.Printf("webpush: no subscriptions for user=%s, skipping push", userID)
+		return
+	}
+	log.Printf("webpush: sending push to user=%s (%d subscription(s))", userID, len(subs))
 
 	payload, err := json.Marshal(pushPayload{Title: title, Body: body, ActionURL: actionURL})
 	if err != nil {
@@ -62,10 +68,11 @@ func (n *WebPushNotifier) Notify(ctx context.Context, userID string, title, body
 			TTL:             86400,
 		})
 		if err != nil {
-			log.Printf("webpush send error (user=%s): %v", userID, err)
+			log.Printf("webpush: send error (user=%s endpoint=%.40s...): %v", userID, sub.Endpoint, err)
 			continue
 		}
 		resp.Body.Close()
+		log.Printf("webpush: push sent to user=%s, status=%d", userID, resp.StatusCode)
 		// 410 Gone = subscription expired; clean it up.
 		if resp.StatusCode == http.StatusGone {
 			_ = n.subRepo.DeleteByEndpoint(ctx, sub.Endpoint)
