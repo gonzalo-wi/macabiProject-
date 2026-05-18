@@ -25,7 +25,8 @@ type StockRepository interface {
 	UpdateRequestStatus(ctx context.Context, id string, status stockdomain.RequestStatus) error
 	// ReturnRequest atomically sets status to DEVUELTO and increments available_stock.
 	ReturnRequest(ctx context.Context, requestID string) error
-	ListRequests(ctx context.Context, params pagination.Params, projectID string) (pagination.Result[stockdomain.RequestDetail], error)
+	// ListRequests lists requests filtered by optional project ID; if onlyRequestedBy is non-nil, restrict to submissions by that user.
+	ListRequests(ctx context.Context, params pagination.Params, projectID string, onlyRequestedBy *string) (pagination.Result[stockdomain.RequestDetail], error)
 	ListMyRequests(ctx context.Context, userID string, params pagination.Params) (pagination.Result[stockdomain.RequestDetail], error)
 
 	// --- Notifications ---

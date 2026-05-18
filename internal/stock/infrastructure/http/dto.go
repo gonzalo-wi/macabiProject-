@@ -194,7 +194,7 @@ func (r UpdateResourceRequest) toInput(id string) stockusecases.UpdateResourceIn
 	}
 }
 
-func (r CreateRequestRequest) toInput(requestedByID string) (stockusecases.CreateRequestInput, error) {
+func (r CreateRequestRequest) toInput(requestedByID, userRole string) (stockusecases.CreateRequestInput, error) {
 	withdrawalDate, err := time.Parse(time.RFC3339, r.WithdrawalDate)
 	if err != nil {
 		return stockusecases.CreateRequestInput{}, err
@@ -211,6 +211,7 @@ func (r CreateRequestRequest) toInput(requestedByID string) (stockusecases.Creat
 		ProjectID:      r.ProjectID,
 		ResourceID:     r.ResourceID,
 		RequestedByID:  requestedByID,
+		UserRole:       userRole,
 		Quantity:       r.Quantity,
 		WithdrawalDate: withdrawalDate,
 		ReturnDate:     returnDate,

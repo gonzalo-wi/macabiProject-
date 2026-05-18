@@ -31,10 +31,7 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 		api.POST("/stock/requests", h.CreateRequest)
 		api.GET("/stock/requests/my", h.ListMyRequests)
 		api.GET("/stock/requests/:id", h.GetRequestDetail)
-		api.GET("/stock/requests",
-			userhttp.RequireRole(userdomain.RoleAdmin),
-			h.ListRequests,
-		)
+		api.GET("/stock/requests", h.ListRequests)
 		api.PATCH("/stock/requests/:id/approve", h.ApproveRequest)
 		api.PATCH("/stock/requests/:id/reject", h.RejectRequest)
 		api.PATCH("/stock/requests/:id/deliver", h.DeliverRequest)

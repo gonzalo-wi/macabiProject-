@@ -7,12 +7,14 @@ import (
 
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
+	userdomain "macabi-back/internal/user/domain"
 )
 
 type CreateRequestInput struct {
 	ProjectID      string
 	ResourceID     string
 	RequestedByID  string
+	UserRole       string
 	Quantity       int
 	WithdrawalDate time.Time
 	ReturnDate     *time.Time
@@ -39,6 +41,16 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 
 	if resource.AvailableStock < input.Quantity {
 		return nil, stockdomain.ErrInsufficientStock
+	}
+
+	if userdomain.Role(input.UserRole) != userdomain.RoleAdmin {
+		ok, err := uc.projectReader.IsProjectMember(ctx, input.ProjectID, input.RequestedByID)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			return nil, stockdomain.ErrForbidden
+		}
 	}
 
 	req, err := stockdomain.NewResourceRequest(
@@ -91,7 +103,7 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 				uc.pushNotifier.Notify(ctx, coordinatorID,
 					"Nueva solicitud de reserva",
 					fmt.Sprintf("%d unidad(es) de \"%s\" esperan aprobación", input.Quantity, resource.Name),
-					"/stock/requests",
+					fmt.Sprintf("/app/mis-proyectos/%s/recursos", input.ProjectID),
 				)
 			}
 		}

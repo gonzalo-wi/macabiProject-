@@ -142,7 +142,8 @@ func (h *Handler) CreateRequest(c *gin.Context) {
 		return
 	}
 	userID := c.GetString(userhttp.AuthUserIDKey)
-	input, err := req.toInput(userID)
+	userRole := c.GetString(userhttp.AuthRoleKey)
+	input, err := req.toInput(userID, userRole)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
 		return
@@ -160,7 +161,14 @@ func (h *Handler) ListRequests(c *gin.Context) {
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 	params := pagination.NewParams(page, pageSize)
 	projectID := c.Query("project_id")
-	result, err := h.listRequestsUC.Execute(c.Request.Context(), params, projectID)
+	userID := c.GetString(userhttp.AuthUserIDKey)
+	userRole := c.GetString(userhttp.AuthRoleKey)
+	result, err := h.listRequestsUC.Execute(c.Request.Context(), stockusecases.ListRequestsInput{
+		Params:    params,
+		ProjectID: projectID,
+		UserID:    userID,
+		UserRole:  userRole,
+	})
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
@@ -182,7 +190,11 @@ func (h *Handler) ListMyRequests(c *gin.Context) {
 }
 
 func (h *Handler) GetRequestDetail(c *gin.Context) {
-	detail, err := h.getRequestDetailUC.Execute(c.Request.Context(), c.Param("id"))
+	detail, err := h.getRequestDetailUC.Execute(c.Request.Context(), stockusecases.GetRequestDetailInput{
+		RequestID: c.Param("id"),
+		UserID:    c.GetString(userhttp.AuthUserIDKey),
+		UserRole:  c.GetString(userhttp.AuthRoleKey),
+	})
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return

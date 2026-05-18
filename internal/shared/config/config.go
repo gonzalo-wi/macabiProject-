@@ -29,6 +29,11 @@ type Config struct {
 	VAPIDPublicKey  string
 	VAPIDPrivateKey string
 	VAPIDSubject    string // e.g. "mailto:admin@example.org"
+
+	// Supabase Storage — optional; expense receipt signed URLs disabled if incomplete.
+	SupabaseURL                  string
+	SupabaseServiceRoleKey       string
+	SupabaseExpenseReceiptBucket string // private bucket id for receipts
 }
 
 func (c *Config) DSN() string {
@@ -107,6 +112,10 @@ func Load() *Config {
 		VAPIDPublicKey:    strings.TrimSpace(os.Getenv("VAPID_PUBLIC_KEY")),
 		VAPIDPrivateKey:   strings.TrimSpace(os.Getenv("VAPID_PRIVATE_KEY")),
 		VAPIDSubject:      strings.TrimSpace(os.Getenv("VAPID_SUBJECT")),
+
+		SupabaseURL:                  strings.TrimSpace(os.Getenv("SUPABASE_URL")),
+		SupabaseServiceRoleKey:       strings.TrimSpace(os.Getenv("SUPABASE_SERVICE_ROLE_KEY")),
+		SupabaseExpenseReceiptBucket: strings.TrimSpace(os.Getenv("SUPABASE_EXPENSE_RECEIPTS_BUCKET")),
 	}
 }
 

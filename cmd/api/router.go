@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	eventhttp "macabi-back/internal/event/infrastructure/http"
+	expenseshttp "macabi-back/internal/expenses/infrastructure/http"
 	projecthttp "macabi-back/internal/project/infrastructure/http"
 	"macabi-back/internal/shared/middleware"
 	stockhttp "macabi-back/internal/stock/infrastructure/http"
@@ -28,6 +29,7 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 	projecthttp.RegisterRoutes(r, deps.ProjectHandler, deps.TokenPrv)
 	eventhttp.RegisterRoutes(r, deps.EventHandler, deps.TokenPrv)
 	stockhttp.RegisterRoutes(r, deps.StockHandler, deps.TokenPrv)
+	expenseshttp.RegisterRoutes(r, deps.ExpensesHandler, deps.TokenPrv)
 
 	return r
 }

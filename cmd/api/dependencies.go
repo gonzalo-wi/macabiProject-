@@ -4,6 +4,12 @@ import (
 	eventusecases "macabi-back/internal/event/application/usecases"
 	eventhttp "macabi-back/internal/event/infrastructure/http"
 	eventpersistence "macabi-back/internal/event/infrastructure/persistence"
+	expensesports "macabi-back/internal/expenses/application/ports"
+	expensesusecases "macabi-back/internal/expenses/application/usecases"
+	expenseshttp "macabi-back/internal/expenses/infrastructure/http"
+	expensesmail "macabi-back/internal/expenses/infrastructure/mail"
+	expensespersistence "macabi-back/internal/expenses/infrastructure/persistence"
+	expensesstorage "macabi-back/internal/expenses/infrastructure/storage"
 	projectusecases "macabi-back/internal/project/application/usecases"
 	projecthttp "macabi-back/internal/project/infrastructure/http"
 	projectpersistence "macabi-back/internal/project/infrastructure/persistence"
@@ -21,17 +27,19 @@ import (
 	usermail "macabi-back/internal/user/infrastructure/mail"
 	userpersistence "macabi-back/internal/user/infrastructure/persistence"
 	usersecurity "macabi-back/internal/user/infrastructure/security"
+	"strings"
 
 	"gorm.io/gorm"
 )
 
 type Dependencies struct {
-	AuthHandler    *userhttp.AuthHandler
-	UserHandler    *userhttp.UserHandler
-	ProjectHandler *projecthttp.ProjectHandler
-	EventHandler   *eventhttp.Handler
-	StockHandler   *stockhttp.Handler
-	TokenPrv       userports.TokenProvider
+	AuthHandler     *userhttp.AuthHandler
+	UserHandler     *userhttp.UserHandler
+	ProjectHandler  *projecthttp.ProjectHandler
+	EventHandler    *eventhttp.Handler
+	StockHandler    *stockhttp.Handler
+	ExpensesHandler *expenseshttp.Handler
+	TokenPrv        userports.TokenProvider
 }
 
 func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
@@ -181,9 +189,9 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		stockusecases.NewRejectRequest(stockRepo, stockRepo, stockRepo, stockMailer, pushNotifier),
 		stockusecases.NewDeliverRequest(stockRepo, stockRepo),
 		stockusecases.NewReturnRequest(stockRepo, stockRepo),
-		stockusecases.NewListRequests(stockRepo),
+		stockusecases.NewListRequests(stockRepo, stockRepo),
 		stockusecases.NewListMyRequests(stockRepo),
-		stockusecases.NewGetRequestDetail(stockRepo),
+		stockusecases.NewGetRequestDetail(stockRepo, stockRepo),
 		stockusecases.NewListNotifications(stockRepo),
 		stockusecases.NewMarkNotificationRead(stockRepo),
 		stockusecases.NewUnreadNotificationCount(stockRepo),
@@ -192,12 +200,56 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		cfg.VAPIDPublicKey,
 	)
 
+	expenseRepo := expensespersistence.NewExpenseRepositoryPG(db)
+	if err := expensespersistence.RunMigrations(db); err != nil {
+		panic("expenses migrations failed: " + err.Error())
+	}
+
+	var receiptSigner expensesports.ReceiptSigner
+	if cfg.SupabaseURL != "" && cfg.SupabaseServiceRoleKey != "" && cfg.SupabaseExpenseReceiptBucket != "" {
+		receiptSigner = &expensesstorage.SupabaseSigner{
+			BaseURL: strings.TrimSuffix(cfg.SupabaseURL, "/"),
+			APIKey:  cfg.SupabaseServiceRoleKey,
+			Bucket:  cfg.SupabaseExpenseReceiptBucket,
+		}
+	}
+
+	var expenseMailer expensesports.ExpenseMailer
+	if cfg.BrevoAPIKey != "" && cfg.BrevoEmailFrom != "" {
+		expenseMailer = expensesmail.NewBrevoExpenseMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
+	} else {
+		expenseMailer = expensesmail.NewNoOpExpenseMailer()
+	}
+
+	createExpenseUC := expensesusecases.NewCreateExpense(expenseRepo, stockRepo, stockRepo, stockRepo, expenseMailer)
+	receiptUploadFileUC := expensesusecases.NewReceiptUploadFile(receiptSigner, expenseRepo, stockRepo)
+
+	expensesHandler := expenseshttp.NewHandler(
+		createExpenseUC,
+		expensesusecases.NewCreateExpenseWithReceipt(createExpenseUC, receiptUploadFileUC, expenseRepo),
+		expensesusecases.NewGetExpense(expenseRepo, stockRepo),
+		expensesusecases.NewListProjectExpenses(expenseRepo, stockRepo),
+		expensesusecases.NewListMyExpenses(expenseRepo),
+		expensesusecases.NewUpdateExpense(expenseRepo, stockRepo),
+		expensesusecases.NewApproveExpense(expenseRepo, stockRepo, stockRepo, expenseMailer),
+		expensesusecases.NewRejectExpense(expenseRepo, stockRepo, stockRepo, expenseMailer),
+		expensesusecases.NewDeleteExpense(expenseRepo, stockRepo, receiptSigner),
+		expensesusecases.NewProjectExpenseSummaryUC(expenseRepo, stockRepo),
+		expensesusecases.NewReceiptUploadURL(receiptSigner, expenseRepo, stockRepo),
+		receiptUploadFileUC,
+		expensesusecases.NewReceiptDownloadURL(receiptSigner, expenseRepo, stockRepo),
+		expensesusecases.NewListExpenseNotifications(expenseRepo),
+		expensesusecases.NewMarkExpenseNotificationRead(expenseRepo),
+		expensesusecases.NewUnreadExpenseNotificationCount(expenseRepo),
+	)
+
 	return &Dependencies{
-		AuthHandler:    authHandler,
-		UserHandler:    userHandler,
-		ProjectHandler: projectHandler,
-		EventHandler:   eventHandler,
-		StockHandler:   stockHandler,
-		TokenPrv:       jwtProvider,
+		AuthHandler:     authHandler,
+		UserHandler:     userHandler,
+		ProjectHandler:  projectHandler,
+		EventHandler:    eventHandler,
+		StockHandler:    stockHandler,
+		ExpensesHandler: expensesHandler,
+		TokenPrv:        jwtProvider,
 	}
 }

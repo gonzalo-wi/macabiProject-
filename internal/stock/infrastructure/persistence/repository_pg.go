@@ -257,7 +257,7 @@ func (r *StockRepositoryPG) UpdateRequestStatus(ctx context.Context, id string, 
 		Update("status", string(status)).Error
 }
 
-func (r *StockRepositoryPG) ListRequests(ctx context.Context, params pagination.Params, projectID string) (pagination.Result[stockdomain.RequestDetail], error) {
+func (r *StockRepositoryPG) ListRequests(ctx context.Context, params pagination.Params, projectID string, onlyRequestedBy *string) (pagination.Result[stockdomain.RequestDetail], error) {
 	q := r.db.WithContext(ctx).
 		Table("stock_requests sr").
 		Select("sr.*, res.name as resource_name, res.type as resource_type, p.name as project_name, u.name as requester_name").
@@ -268,9 +268,13 @@ func (r *StockRepositoryPG) ListRequests(ctx context.Context, params pagination.
 	if projectID != "" {
 		q = q.Where("sr.project_id = ?", projectID)
 	}
+	if onlyRequestedBy != nil && *onlyRequestedBy != "" {
+		q = q.Where("sr.requested_by_id = ?", *onlyRequestedBy)
+	}
 
 	var total int64
-	if err := q.Session(&gorm.Session{}).Count(&total).Error; err != nil {
+	countQ := q.Session(&gorm.Session{})
+	if err := countQ.Count(&total).Error; err != nil {
 		return pagination.Result[stockdomain.RequestDetail]{}, err
 	}
 
@@ -376,6 +380,15 @@ func (r *StockRepositoryPG) FindProjectCoordinators(ctx context.Context, project
 		Where("project_id = ? AND role = ?", projectID, "coordinator").
 		Pluck("user_id", &userIDs).Error
 	return userIDs, err
+}
+
+func (r *StockRepositoryPG) IsProjectMember(ctx context.Context, projectID, userID string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Table("project_members").
+		Where("project_id = ? AND user_id = ?", projectID, userID).
+		Count(&count).Error
+	return count > 0, err
 }
 
 func (r *StockRepositoryPG) IsProjectCoordinator(ctx context.Context, projectID, userID string) (bool, error) {
