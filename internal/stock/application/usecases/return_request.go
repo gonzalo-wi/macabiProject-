@@ -50,6 +50,5 @@ func (uc *ReturnRequest) Execute(ctx context.Context, input ReturnRequestInput) 
 		return stockdomain.ErrNotReturnable
 	}
 
-	// Atomic: status → DEVUELTO + available_stock += quantity.
 	return uc.repo.ReturnRequest(ctx, input.RequestID)
 }

@@ -16,4 +16,6 @@ var (
 	ErrForbidden               = errors.New("no tiene permisos para realizar esta acción")
 	ErrResourceInUse           = errors.New("el recurso tiene solicitudes activas y no puede eliminarse")
 	ErrNotReturnable           = errors.New("el recurso es consumible y no puede marcarse como devuelto")
+	ErrCannotCancel            = errors.New("solo se puede cancelar una solicitud en estado PENDIENTE")
+	ErrNotOwner                = errors.New("solo el solicitante puede cancelar su propia solicitud")
 )

@@ -25,7 +25,6 @@ type ListRequestsInput struct {
 	UserRole  string
 }
 
-// Execute lists stock requests. Admin may omit project_id for all projects. Non-admins must pass project_id and be a project member; coordinators see all project requests, madrij only their own.
 func (uc *ListRequests) Execute(ctx context.Context, input ListRequestsInput) (pagination.Result[stockdomain.RequestDetail], error) {
 	role := userdomain.Role(input.UserRole)
 

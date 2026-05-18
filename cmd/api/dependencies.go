@@ -187,6 +187,7 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		stockusecases.NewCreateRequest(stockRepo, stockRepo, stockRepo, stockMailer, pushNotifier),
 		stockusecases.NewApproveRequest(stockRepo, stockRepo, stockRepo, stockMailer, pushNotifier),
 		stockusecases.NewRejectRequest(stockRepo, stockRepo, stockRepo, stockMailer, pushNotifier),
+		stockusecases.NewCancelRequest(stockRepo),
 		stockusecases.NewDeliverRequest(stockRepo, stockRepo),
 		stockusecases.NewReturnRequest(stockRepo, stockRepo),
 		stockusecases.NewListRequests(stockRepo, stockRepo),

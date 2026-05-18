@@ -20,9 +20,9 @@ const (
 	RequestStatusRejected  RequestStatus = "RECHAZADO"
 	RequestStatusDelivered RequestStatus = "ENTREGADO"
 	RequestStatusReturned  RequestStatus = "DEVUELTO"
+	RequestStatusCancelled RequestStatus = "CANCELADO"
 )
 
-// Resource is a physical item that can be lent or consumed by projects.
 type Resource struct {
 	ID             string
 	Name           string
@@ -51,7 +51,6 @@ func NewResource(name string, rtype ResourceType, totalStock int) (*Resource, er
 	}, nil
 }
 
-// ResourceRequest is a reservation/loan request made by a madrij for a project.
 type ResourceRequest struct {
 	ID             string
 	ProjectID      string
@@ -59,7 +58,7 @@ type ResourceRequest struct {
 	RequestedByID  string
 	Quantity       int
 	WithdrawalDate time.Time
-	ReturnDate     *time.Time // null for consumables
+	ReturnDate     *time.Time
 	Status         RequestStatus
 	Notes          string
 	CreatedAt      time.Time
@@ -90,7 +89,6 @@ func NewResourceRequest(
 	}, nil
 }
 
-// StockNotification is an in-app notification sent to project coordinators.
 type StockNotification struct {
 	ID        string
 	UserID    string
@@ -100,7 +98,6 @@ type StockNotification struct {
 	CreatedAt time.Time
 }
 
-// RequestDetail is a request enriched with resource, project, and requester names for display.
 type RequestDetail struct {
 	Request       ResourceRequest
 	ResourceName  string

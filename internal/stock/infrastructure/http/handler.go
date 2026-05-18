@@ -21,6 +21,7 @@ type Handler struct {
 	createRequestUC        *stockusecases.CreateRequest
 	approveRequestUC       *stockusecases.ApproveRequest
 	rejectRequestUC        *stockusecases.RejectRequest
+	cancelRequestUC        *stockusecases.CancelRequest
 	deliverRequestUC       *stockusecases.DeliverRequest
 	returnRequestUC        *stockusecases.ReturnRequest
 	listRequestsUC         *stockusecases.ListRequests
@@ -43,6 +44,7 @@ func NewHandler(
 	createRequestUC *stockusecases.CreateRequest,
 	approveRequestUC *stockusecases.ApproveRequest,
 	rejectRequestUC *stockusecases.RejectRequest,
+	cancelRequestUC *stockusecases.CancelRequest,
 	deliverRequestUC *stockusecases.DeliverRequest,
 	returnRequestUC *stockusecases.ReturnRequest,
 	listRequestsUC *stockusecases.ListRequests,
@@ -64,6 +66,7 @@ func NewHandler(
 		createRequestUC:        createRequestUC,
 		approveRequestUC:       approveRequestUC,
 		rejectRequestUC:        rejectRequestUC,
+		cancelRequestUC:        cancelRequestUC,
 		deliverRequestUC:       deliverRequestUC,
 		returnRequestUC:        returnRequestUC,
 		listRequestsUC:         listRequestsUC,
@@ -221,6 +224,21 @@ func (h *Handler) RejectRequest(c *gin.Context) {
 	userID := c.GetString(userhttp.AuthUserIDKey)
 	userRole := c.GetString(userhttp.AuthRoleKey)
 	err := h.rejectRequestUC.Execute(c.Request.Context(), stockusecases.RejectRequestInput{
+		RequestID: c.Param("id"),
+		UserID:    userID,
+		UserRole:  userRole,
+	})
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) CancelRequest(c *gin.Context) {
+	userID := c.GetString(userhttp.AuthUserIDKey)
+	userRole := c.GetString(userhttp.AuthRoleKey)
+	err := h.cancelRequestUC.Execute(c.Request.Context(), stockusecases.CancelRequestInput{
 		RequestID: c.Param("id"),
 		UserID:    userID,
 		UserRole:  userRole,

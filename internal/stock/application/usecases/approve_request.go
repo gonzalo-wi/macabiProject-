@@ -45,7 +45,6 @@ func (uc *ApproveRequest) Execute(ctx context.Context, input ApproveRequestInput
 		}
 	}
 
-	// Check stock is still available (may have changed since request was created).
 	resource, err := uc.repo.FindResourceByID(ctx, req.ResourceID)
 	if err != nil {
 		return err
@@ -54,11 +53,9 @@ func (uc *ApproveRequest) Execute(ctx context.Context, input ApproveRequestInput
 		return stockdomain.ErrInsufficientStock
 	}
 
-	// Atomic: status → RESERVADO + available_stock -= quantity.
 	if err := uc.repo.ApproveRequest(ctx, input.RequestID); err != nil {
 		return err
 	}
-	// Best-effort email + push to the requester.
 	if email, err := uc.emailReader.FindEmailByID(ctx, req.RequestedByID); err == nil {
 		_ = uc.mailer.NotifyRequesterApproved(ctx, email, resource.Name, req.Quantity)
 	}

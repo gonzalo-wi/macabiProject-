@@ -48,7 +48,6 @@ func (uc *RejectRequest) Execute(ctx context.Context, input RejectRequestInput) 
 	if err := uc.repo.UpdateRequestStatus(ctx, input.RequestID, stockdomain.RequestStatusRejected); err != nil {
 		return err
 	}
-	// Best-effort email + push to the requester.
 	if resource, err := uc.repo.FindResourceByID(ctx, req.ResourceID); err == nil {
 		if email, err := uc.emailReader.FindEmailByID(ctx, req.RequestedByID); err == nil {
 			_ = uc.mailer.NotifyRequesterRejected(ctx, email, resource.Name, req.Quantity)

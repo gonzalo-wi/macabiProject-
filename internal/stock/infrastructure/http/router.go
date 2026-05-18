@@ -34,6 +34,7 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 		api.GET("/stock/requests", h.ListRequests)
 		api.PATCH("/stock/requests/:id/approve", h.ApproveRequest)
 		api.PATCH("/stock/requests/:id/reject", h.RejectRequest)
+		api.PATCH("/stock/requests/:id/cancel", h.CancelRequest)
 		api.PATCH("/stock/requests/:id/deliver", h.DeliverRequest)
 		api.PATCH("/stock/requests/:id/return", h.ReturnRequest)
 

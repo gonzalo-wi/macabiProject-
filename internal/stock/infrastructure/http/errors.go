@@ -22,8 +22,11 @@ func httpStatus(err error) int {
 		stockdomain.ErrInvalidResourceType,
 		stockdomain.ErrMissingRequiredField,
 		stockdomain.ErrNotReturnable,
-		stockdomain.ErrResourceInUse:
+		stockdomain.ErrResourceInUse,
+		stockdomain.ErrCannotCancel:
 		return http.StatusBadRequest
+	case stockdomain.ErrNotOwner:
+		return http.StatusForbidden
 	default:
 		return http.StatusInternalServerError
 	}

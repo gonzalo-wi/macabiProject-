@@ -41,7 +41,6 @@ func (uc *UpdateResource) Execute(ctx context.Context, input UpdateResourceInput
 		return nil, stockdomain.ErrInvalidStock
 	}
 
-	// Adjust available stock proportionally if total stock changes.
 	diff := input.TotalStock - r.TotalStock
 	r.Name = name
 	r.Type = rtype

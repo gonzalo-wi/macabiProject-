@@ -73,13 +73,11 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 	isCoordinator, _ := uc.projectReader.IsProjectCoordinator(ctx, input.ProjectID, input.RequestedByID)
 
 	if isCoordinator {
-		// Coordinators get their request auto-approved (atomic stock deduction).
 		if err := uc.repo.ApproveRequest(ctx, req.ID); err != nil {
 			return nil, err
 		}
 		req.Status = stockdomain.RequestStatusApproved
 	} else {
-		// Madrij and others: notify coordinators so they can approve/reject.
 		coordinators, err := uc.projectReader.FindProjectCoordinators(ctx, input.ProjectID)
 		if err == nil {
 			msg := fmt.Sprintf("Nueva solicitud de reserva: %d unidad(es) de \"%s\"", input.Quantity, resource.Name)
@@ -91,7 +89,6 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 				}
 				_ = uc.repo.SaveNotification(ctx, notif)
 			}
-			// Best-effort email + push to all coordinators.
 			if emails, err := uc.emailReader.FindEmailsByIDs(ctx, coordinators); err == nil {
 				addrs := make([]string, 0, len(emails))
 				for _, e := range emails {
