@@ -2,7 +2,6 @@ package projecthttp
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -59,9 +58,7 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 }
 
 func (h *ProjectHandler) List(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	params := pagination.NewParams(page, pageSize)
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	result, err := h.listUC.Execute(c.Request.Context(), params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))

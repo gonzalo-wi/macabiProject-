@@ -12,28 +12,25 @@ import (
 )
 
 type Config struct {
-	DBHost            string
-	DBPort            string
-	DBUser            string
-	DBPassword        string
-	DBName            string
-	Port              string
-	JWTSecret         string
-	JWTExpiration     time.Duration
-	BrevoAPIKey       string
-	BrevoEmailFrom    string
-	FrontendPublicURL string
-	InvitationTTL     time.Duration
-	PasswordResetTTL  time.Duration
-	// Web Push (VAPID) — optional; push notifications are skipped if unset.
-	VAPIDPublicKey  string
-	VAPIDPrivateKey string
-	VAPIDSubject    string // e.g. "mailto:admin@example.org"
-
-	// Supabase Storage — optional; expense receipt signed URLs disabled if incomplete.
+	DBHost                       string
+	DBPort                       string
+	DBUser                       string
+	DBPassword                   string
+	DBName                       string
+	Port                         string
+	JWTSecret                    string
+	JWTExpiration                time.Duration
+	BrevoAPIKey                  string
+	BrevoEmailFrom               string
+	FrontendPublicURL            string
+	InvitationTTL                time.Duration
+	PasswordResetTTL             time.Duration
+	VAPIDPublicKey               string
+	VAPIDPrivateKey              string
+	VAPIDSubject                 string
 	SupabaseURL                  string
 	SupabaseServiceRoleKey       string
-	SupabaseExpenseReceiptBucket string // private bucket id for receipts
+	SupabaseExpenseReceiptBucket string
 }
 
 func (c *Config) DSN() string {

@@ -18,20 +18,20 @@ import (
 type Handler struct {
 	create            *expensesusecases.CreateExpense
 	createWithReceipt *expensesusecases.CreateExpenseWithReceipt
-	getExp    *expensesusecases.GetExpense
-	listProj  *expensesusecases.ListProjectExpenses
-	listMine  *expensesusecases.ListMyExpenses
-	upd       *expensesusecases.UpdateExpense
-	approve   *expensesusecases.ApproveExpense
-	reject    *expensesusecases.RejectExpense
-	deleteUC  *expensesusecases.DeleteExpense
-	summaryUC *expensesusecases.ProjectExpenseSummaryUC
-	recUpload     *expensesusecases.ReceiptUploadURL
-	recUploadFile *expensesusecases.ReceiptUploadFile
-	recView       *expensesusecases.ReceiptDownloadURL
-	listNotifs    *expensesusecases.ListExpenseNotifications
-	markNotifRead *expensesusecases.MarkExpenseNotificationRead
-	unreadNotifs  *expensesusecases.UnreadExpenseNotificationCount
+	getExp            *expensesusecases.GetExpense
+	listProj          *expensesusecases.ListProjectExpenses
+	listMine          *expensesusecases.ListMyExpenses
+	upd               *expensesusecases.UpdateExpense
+	approve           *expensesusecases.ApproveExpense
+	reject            *expensesusecases.RejectExpense
+	deleteUC          *expensesusecases.DeleteExpense
+	summaryUC         *expensesusecases.ProjectExpenseSummaryUC
+	recUpload         *expensesusecases.ReceiptUploadURL
+	recUploadFile     *expensesusecases.ReceiptUploadFile
+	recView           *expensesusecases.ReceiptDownloadURL
+	listNotifs        *expensesusecases.ListExpenseNotifications
+	markNotifRead     *expensesusecases.MarkExpenseNotificationRead
+	unreadNotifs      *expensesusecases.UnreadExpenseNotificationCount
 }
 
 func NewHandler(
@@ -55,20 +55,20 @@ func NewHandler(
 	return &Handler{
 		create:            create,
 		createWithReceipt: createWithReceipt,
-		getExp:    getExp,
-		listProj:  listProj,
-		listMine:  listMine,
-		upd:       upd,
-		approve:   approve,
-		reject:    reject,
-		deleteUC:  deleteUC,
-		summaryUC: summaryUC,
-		recUpload:     recUpload,
-		recUploadFile: recUploadFile,
-		recView:       recView,
-		listNotifs:    listNotifs,
-		markNotifRead: markNotifRead,
-		unreadNotifs:  unreadNotifs,
+		getExp:            getExp,
+		listProj:          listProj,
+		listMine:          listMine,
+		upd:               upd,
+		approve:           approve,
+		reject:            reject,
+		deleteUC:          deleteUC,
+		summaryUC:         summaryUC,
+		recUpload:         recUpload,
+		recUploadFile:     recUploadFile,
+		recView:           recView,
+		listNotifs:        listNotifs,
+		markNotifRead:     markNotifRead,
+		unreadNotifs:      unreadNotifs,
 	}
 }
 
@@ -193,7 +193,7 @@ func (h *Handler) createMultipart(c *gin.Context) {
 }
 
 func (h *Handler) ListMine(c *gin.Context) {
-	params := pagination.NewParams(parsePage(c.DefaultQuery("page", "1"), 1), parsePage(c.DefaultQuery("page_size", "20"), 20))
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	res, err := h.listMine.Execute(c.Request.Context(), c.GetString(userhttp.AuthUserIDKey), params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
@@ -204,7 +204,7 @@ func (h *Handler) ListMine(c *gin.Context) {
 
 func (h *Handler) ListByProject(c *gin.Context) {
 	pid := c.Param("id")
-	params := pagination.NewParams(parsePage(c.DefaultQuery("page", "1"), 1), parsePage(c.DefaultQuery("page_size", "20"), 20))
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 
 	res, err := h.listProj.Execute(c.Request.Context(), expensesusecases.ListProjectExpensesInput{
 		ProjectID: pid,
@@ -444,7 +444,7 @@ func (h *Handler) ReceiptView(c *gin.Context) {
 }
 
 func (h *Handler) ListNotifications(c *gin.Context) {
-	params := pagination.NewParams(parsePage(c.DefaultQuery("page", "1"), 1), parsePage(c.DefaultQuery("page_size", "20"), 20))
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	userID := c.GetString(userhttp.AuthUserIDKey)
 	result, err := h.listNotifs.Execute(c.Request.Context(), userID, params)
 	if err != nil {

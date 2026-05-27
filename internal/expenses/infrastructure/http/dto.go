@@ -1,7 +1,6 @@
 package expenseshttp
 
 import (
-	"strconv"
 	"time"
 
 	expensesports "macabi-back/internal/expenses/application/ports"
@@ -157,12 +156,4 @@ func parseExpenseDate(layout, v string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return t.UTC().Truncate(24 * time.Hour), nil
-}
-
-func parsePage(s string, def int) int {
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		return def
-	}
-	return v
 }

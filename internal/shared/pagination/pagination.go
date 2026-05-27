@@ -1,5 +1,12 @@
 package pagination
 
+import "strconv"
+
+const (
+	DefaultPage     = 1
+	DefaultPageSize = 10
+)
+
 type Params struct {
 	Page     int
 	PageSize int
@@ -15,12 +22,24 @@ type Result[T any] struct {
 
 func NewParams(page, pageSize int) Params {
 	if page < 1 {
-		page = 1
+		page = DefaultPage
 	}
 	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+		pageSize = DefaultPageSize
 	}
 	return Params{Page: page, PageSize: pageSize}
+}
+
+func ParseParams(pageStr, pageSizeStr string) Params {
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = DefaultPage
+	}
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 1 {
+		pageSize = DefaultPageSize
+	}
+	return NewParams(page, pageSize)
 }
 
 func (p Params) Offset() int {

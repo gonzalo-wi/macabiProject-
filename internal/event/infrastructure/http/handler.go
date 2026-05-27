@@ -2,7 +2,6 @@ package eventhttp
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -112,9 +111,7 @@ func (h *Handler) CreateEvent(c *gin.Context) {
 }
 
 func (h *Handler) ListEvents(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	params := pagination.NewParams(page, pageSize)
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	res, err := h.listEvents.Execute(c.Request.Context(), params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
@@ -390,9 +387,7 @@ func (h *Handler) GetMyResponse(c *gin.Context) {
 }
 
 func (h *Handler) ListEventResponsesForAdmin(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	params := pagination.NewParams(page, pageSize)
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	result, err := h.listEventResponses.Execute(c.Request.Context(), c.Param("id"), params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))

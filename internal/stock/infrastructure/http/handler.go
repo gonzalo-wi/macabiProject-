@@ -2,7 +2,6 @@ package stockhttp
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -96,9 +95,7 @@ func (h *Handler) CreateResource(c *gin.Context) {
 }
 
 func (h *Handler) ListResources(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "50"))
-	params := pagination.NewParams(page, pageSize)
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	result, err := h.listResourcesUC.Execute(c.Request.Context(), params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
@@ -160,9 +157,7 @@ func (h *Handler) CreateRequest(c *gin.Context) {
 }
 
 func (h *Handler) ListRequests(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	params := pagination.NewParams(page, pageSize)
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	projectID := c.Query("project_id")
 	userID := c.GetString(userhttp.AuthUserIDKey)
 	userRole := c.GetString(userhttp.AuthRoleKey)
@@ -180,9 +175,7 @@ func (h *Handler) ListRequests(c *gin.Context) {
 }
 
 func (h *Handler) ListMyRequests(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	params := pagination.NewParams(page, pageSize)
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	userID := c.GetString(userhttp.AuthUserIDKey)
 	result, err := h.listMyRequestsUC.Execute(c.Request.Context(), userID, params)
 	if err != nil {
@@ -281,9 +274,7 @@ func (h *Handler) ReturnRequest(c *gin.Context) {
 }
 
 func (h *Handler) ListNotifications(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
-	params := pagination.NewParams(page, pageSize)
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	userID := c.GetString(userhttp.AuthUserIDKey)
 	result, err := h.listNotificationsUC.Execute(c.Request.Context(), userID, params)
 	if err != nil {

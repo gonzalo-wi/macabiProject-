@@ -2,7 +2,6 @@ package userhttp
 
 import (
 	"net/http"
-	"strconv"
 
 	sharederrors "macabi-back/internal/shared/errors"
 	"macabi-back/internal/shared/pagination"
@@ -152,10 +151,7 @@ func (h *UserHandler) ChangeRole(c *gin.Context) {
 }
 
 func (h *UserHandler) ListUsers(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-
-	params := pagination.NewParams(page, pageSize)
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 
 	result, err := h.listUsersUC.Execute(c.Request.Context(), params)
 	if err != nil {
