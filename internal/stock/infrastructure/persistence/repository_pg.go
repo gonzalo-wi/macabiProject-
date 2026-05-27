@@ -336,19 +336,25 @@ func (r *StockRepositoryPG) SaveNotification(ctx context.Context, n *stockdomain
 	return nil
 }
 
-func (r *StockRepositoryPG) ListNotificationsByUser(ctx context.Context, userID string) ([]stockdomain.StockNotification, error) {
+func (r *StockRepositoryPG) ListNotificationsByUser(ctx context.Context, userID string, params pagination.Params) (pagination.Result[stockdomain.StockNotification], error) {
+	var total int64
+	if err := r.db.WithContext(ctx).Model(&NotificationModel{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+		return pagination.Result[stockdomain.StockNotification]{}, err
+	}
 	var models []NotificationModel
 	if err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
+		Offset(params.Offset()).
+		Limit(params.PageSize).
 		Find(&models).Error; err != nil {
-		return nil, err
+		return pagination.Result[stockdomain.StockNotification]{}, err
 	}
 	out := make([]stockdomain.StockNotification, len(models))
 	for i, m := range models {
 		out[i] = toDomainNotification(m)
 	}
-	return out, nil
+	return pagination.NewResult(out, total, params), nil
 }
 
 func (r *StockRepositoryPG) MarkNotificationRead(ctx context.Context, id, userID string) error {

@@ -41,6 +41,5 @@ func (uc *DeliverRequest) Execute(ctx context.Context, input DeliverRequestInput
 			return stockdomain.ErrForbidden
 		}
 	}
-
 	return uc.repo.UpdateRequestStatus(ctx, input.RequestID, stockdomain.RequestStatusDelivered)
 }

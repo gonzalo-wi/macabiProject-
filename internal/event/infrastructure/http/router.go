@@ -23,6 +23,7 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 			// Listado admin: mismo handler en dos rutas (alias evita confusiones con POST .../responses).
 			admin.GET("/event-instances/:id/participant-responses", h.ListEventResponsesForAdmin)
 			admin.GET("/event-instances/:id/responses", h.ListEventResponsesForAdmin)
+			admin.GET("/event-modules/:id/response-summary", h.GetModuleResponseSummary)
 			admin.POST("/event-instances", h.CreateEvent)
 			admin.PATCH("/event-instances/:id", h.PatchEvent)
 			admin.DELETE("/event-instances/:id", h.DeleteEvent)

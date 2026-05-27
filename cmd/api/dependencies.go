@@ -144,6 +144,7 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	submitResponseUC := eventusecases.NewSubmitResponse(eventRepo)
 	getMyResponseUC := eventusecases.NewGetMyResponse(eventRepo)
 	listEventResponsesUC := eventusecases.NewListEventResponses(eventRepo)
+	getModuleResponseSummaryUC := eventusecases.NewGetModuleResponseSummary(eventRepo)
 	eventHandler := eventhttp.NewHandler(
 		createEventUC,
 		listEventsUC,
@@ -164,13 +165,14 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		submitResponseUC,
 		getMyResponseUC,
 		listEventResponsesUC,
+		getModuleResponseSummaryUC,
 	)
 
 	stockRepo := stockpersistence.NewStockRepositoryPG(db)
 	if err := stockpersistence.RunMigrations(db); err != nil {
 		panic("stock migrations failed: " + err.Error())
 	}
-	stockMailer := stockmail.NewBrevoStockMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
+	stockMailer := stockmail.NewBrevoStockMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom, cfg.FrontendPublicURL)
 	pushSubRepo := stockpersistence.NewPushSubscriptionRepositoryPG(db)
 	var pushNotifier stockports.UserPushNotifier
 	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" && cfg.VAPIDSubject != "" {

@@ -159,9 +159,9 @@ func toRequestDetailListResponse(result pagination.Result[stockdomain.RequestDet
 	}
 }
 
-func toNotificationListResponse(notifs []stockdomain.StockNotification) []NotificationResponse {
-	out := make([]NotificationResponse, len(notifs))
-	for i, n := range notifs {
+func toNotificationListResponse(result pagination.Result[stockdomain.StockNotification]) pagination.Result[NotificationResponse] {
+	out := make([]NotificationResponse, len(result.Data))
+	for i, n := range result.Data {
 		resp := NotificationResponse{
 			ID:        n.ID,
 			RequestID: n.RequestID,
@@ -174,7 +174,13 @@ func toNotificationListResponse(notifs []stockdomain.StockNotification) []Notifi
 		}
 		out[i] = resp
 	}
-	return out
+	return pagination.Result[NotificationResponse]{
+		Data:       out,
+		Total:      result.Total,
+		Page:       result.Page,
+		PageSize:   result.PageSize,
+		TotalPages: result.TotalPages,
+	}
 }
 
 func (r CreateResourceRequest) toInput() stockusecases.CreateResourceInput {

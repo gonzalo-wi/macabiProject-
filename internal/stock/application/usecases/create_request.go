@@ -94,7 +94,7 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 				for _, e := range emails {
 					addrs = append(addrs, e)
 				}
-				_ = uc.mailer.NotifyCoordinatorsNewRequest(ctx, addrs, resource.Name, input.Quantity)
+				_ = uc.mailer.NotifyCoordinatorsNewRequest(ctx, addrs, resource.Name, input.Quantity, req.ID)
 			}
 			for _, coordinatorID := range coordinators {
 				uc.pushNotifier.Notify(ctx, coordinatorID,

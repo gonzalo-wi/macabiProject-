@@ -31,7 +31,7 @@ type StockRepository interface {
 
 	// --- Notifications ---
 	SaveNotification(ctx context.Context, n *stockdomain.StockNotification) error
-	ListNotificationsByUser(ctx context.Context, userID string) ([]stockdomain.StockNotification, error)
+	ListNotificationsByUser(ctx context.Context, userID string, params pagination.Params) (pagination.Result[stockdomain.StockNotification], error)
 	MarkNotificationRead(ctx context.Context, id, userID string) error
 	UnreadCount(ctx context.Context, userID string) (int64, error)
 }

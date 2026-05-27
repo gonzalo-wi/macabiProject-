@@ -8,8 +8,6 @@ import (
 	expensesdomain "macabi-back/internal/expenses/domain"
 )
 
-// CreateExpenseWithReceipt creates an expense and optionally attaches a receipt in one flow.
-// If the receipt upload fails, the expense row is removed so nothing half-created remains.
 type CreateExpenseWithReceipt struct {
 	create  *CreateExpense
 	receipt *ReceiptUploadFile

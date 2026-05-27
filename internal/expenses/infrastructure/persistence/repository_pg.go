@@ -271,19 +271,25 @@ func (r *ExpenseRepositoryPG) SaveNotification(ctx context.Context, n *expensesd
 	return nil
 }
 
-func (r *ExpenseRepositoryPG) ListNotificationsByUser(ctx context.Context, userID string) ([]expensesdomain.ExpenseNotification, error) {
+func (r *ExpenseRepositoryPG) ListNotificationsByUser(ctx context.Context, userID string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseNotification], error) {
+	var total int64
+	if err := r.db.WithContext(ctx).Model(&ExpenseNotificationModel{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+		return pagination.Result[expensesdomain.ExpenseNotification]{}, err
+	}
 	var models []ExpenseNotificationModel
 	if err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
+		Offset(params.Offset()).
+		Limit(params.PageSize).
 		Find(&models).Error; err != nil {
-		return nil, err
+		return pagination.Result[expensesdomain.ExpenseNotification]{}, err
 	}
 	out := make([]expensesdomain.ExpenseNotification, len(models))
 	for i, m := range models {
 		out[i] = toDomainExpenseNotification(m)
 	}
-	return out, nil
+	return pagination.NewResult(out, total, params), nil
 }
 
 func (r *ExpenseRepositoryPG) MarkNotificationRead(ctx context.Context, id, userID string) error {

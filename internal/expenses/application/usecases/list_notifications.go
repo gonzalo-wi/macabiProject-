@@ -5,6 +5,7 @@ import (
 
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesdomain "macabi-back/internal/expenses/domain"
+	"macabi-back/internal/shared/pagination"
 )
 
 type ListExpenseNotifications struct {
@@ -15,6 +16,6 @@ func NewListExpenseNotifications(repo expensesports.ExpenseRepository) *ListExpe
 	return &ListExpenseNotifications{repo: repo}
 }
 
-func (uc *ListExpenseNotifications) Execute(ctx context.Context, userID string) ([]expensesdomain.ExpenseNotification, error) {
-	return uc.repo.ListNotificationsByUser(ctx, userID)
+func (uc *ListExpenseNotifications) Execute(ctx context.Context, userID string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseNotification], error) {
+	return uc.repo.ListNotificationsByUser(ctx, userID, params)
 }

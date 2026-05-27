@@ -10,12 +10,11 @@ import (
 	userdomain "macabi-back/internal/user/domain"
 )
 
-// ReceiptMIME maps allowed upload content types to a stable file suffix (without dot in map value for path).
 var ReceiptMIME = map[string]string{
-	"image/jpeg":       ".jpg",
-	"image/png":        ".png",
-	"image/webp":       ".webp",
-	"application/pdf":  ".pdf",
+	"image/jpeg":      ".jpg",
+	"image/png":       ".png",
+	"image/webp":      ".webp",
+	"application/pdf": ".pdf",
 }
 
 const MaxReceiptBytes = 2 * 1024 * 1024

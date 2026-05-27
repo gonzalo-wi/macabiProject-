@@ -122,3 +122,33 @@ type AnswerInput struct {
 	OptionID  *string `json:"option_id"`
 	TextValue *string `json:"text_value"`
 }
+
+// ModuleResponseSummary aggregates who selected what inside a module.
+
+type SummaryParticipant struct {
+	UserID    string
+	UserName  string
+	UserEmail string
+	ProjectID *string
+}
+
+type OptionSummary struct {
+	Option EventOption
+	Users  []SummaryParticipant
+}
+
+type TextAnswerSummary struct {
+	Value string
+	User  SummaryParticipant
+}
+
+type GroupSummary struct {
+	Group       EventOptionGroup
+	Options     []OptionSummary     // for single/multi choice groups
+	TextAnswers []TextAnswerSummary // for text/number groups
+}
+
+type ModuleResponseSummary struct {
+	Module EventModule
+	Groups []GroupSummary
+}

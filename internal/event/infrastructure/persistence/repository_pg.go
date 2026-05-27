@@ -443,7 +443,7 @@ func (r *RepositoryPG) LoadUserResponseDetail(ctx context.Context, eventID, user
 	return resp, out, nil
 }
 
-func (r *RepositoryPG) ListResponsesForEvent(ctx context.Context, eventID string) ([]eventdomain.EventResponseWithParticipant, error) {
+func (r *RepositoryPG) ListResponsesForEvent(ctx context.Context, eventID string, params pagination.Params) (pagination.Result[eventdomain.EventResponseWithParticipant], error) {
 	type listRow struct {
 		ID              string         `gorm:"column:id"`
 		EventInstanceID string         `gorm:"column:event_instance_id"`
@@ -453,6 +453,12 @@ func (r *RepositoryPG) ListResponsesForEvent(ctx context.Context, eventID string
 		UserName        sql.NullString `gorm:"column:user_name"`
 		UserEmail       sql.NullString `gorm:"column:user_email"`
 	}
+
+	var total int64
+	if err := r.db.WithContext(ctx).Model(&EventResponseModel{}).Where("event_instance_id = ?", eventID).Count(&total).Error; err != nil {
+		return pagination.Result[eventdomain.EventResponseWithParticipant]{}, err
+	}
+
 	var rows []listRow
 	err := r.db.WithContext(ctx).Raw(`
 SELECT er.id, er.event_instance_id, er.user_id, er.project_id, er.created_at,
@@ -460,12 +466,13 @@ SELECT er.id, er.event_instance_id, er.user_id, er.project_id, er.created_at,
 FROM event_responses er
 LEFT JOIN users u ON u.id = er.user_id
 WHERE er.event_instance_id = ?
-ORDER BY er.created_at ASC`, eventID).Scan(&rows).Error
+ORDER BY er.created_at ASC
+LIMIT ? OFFSET ?`, eventID, params.PageSize, params.Offset()).Scan(&rows).Error
 	if err != nil {
-		return nil, err
+		return pagination.Result[eventdomain.EventResponseWithParticipant]{}, err
 	}
 	if len(rows) == 0 {
-		return nil, nil
+		return pagination.NewResult([]eventdomain.EventResponseWithParticipant{}, total, params), nil
 	}
 	respIDs := make([]string, len(rows))
 	for i := range rows {
@@ -473,7 +480,7 @@ ORDER BY er.created_at ASC`, eventID).Scan(&rows).Error
 	}
 	var ansRows []EventResponseAnswerModel
 	if err := r.db.WithContext(ctx).Where("response_id IN ?", respIDs).Find(&ansRows).Error; err != nil {
-		return nil, err
+		return pagination.Result[eventdomain.EventResponseWithParticipant]{}, err
 	}
 	byResp := make(map[string][]eventdomain.EventResponseAnswer)
 	for i := range ansRows {
@@ -501,7 +508,7 @@ ORDER BY er.created_at ASC`, eventID).Scan(&rows).Error
 			Answers:   byResp[resp.ID],
 		}
 	}
-	return out, nil
+	return pagination.NewResult(out, total, params), nil
 }
 
 func (r *RepositoryPG) SubmitResponse(ctx context.Context, eventID, userID string, projectID *string, answers []eventdomain.AnswerInput) error {
@@ -685,4 +692,118 @@ func toDomainAns(m *EventResponseAnswerModel) *eventdomain.EventResponseAnswer {
 		OptionID:   m.OptionID,
 		TextValue:  m.TextValue,
 	}
+}
+
+func (r *RepositoryPG) LoadModuleResponseSummary(ctx context.Context, moduleID string) (*eventdomain.ModuleResponseSummary, error) {
+	// Load module
+	var modRow EventModuleModel
+	if err := r.db.WithContext(ctx).First(&modRow, "id = ?", moduleID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, eventdomain.ErrNotFound
+		}
+		return nil, err
+	}
+
+	// Load groups for this module
+	var groupRows []EventOptionGroupModel
+	if err := r.db.WithContext(ctx).Where("module_id = ?", moduleID).Order("sort_order ASC").Find(&groupRows).Error; err != nil {
+		return nil, err
+	}
+
+	if len(groupRows) == 0 {
+		return &eventdomain.ModuleResponseSummary{Module: *toDomainMod(&modRow)}, nil
+	}
+
+	groupIDs := make([]string, len(groupRows))
+	for i, g := range groupRows {
+		groupIDs[i] = g.ID
+	}
+
+	// Load options for all groups
+	var optRows []EventOptionModel
+	if err := r.db.WithContext(ctx).Where("group_id IN ?", groupIDs).Order("sort_order ASC").Find(&optRows).Error; err != nil {
+		return nil, err
+	}
+	optsByGroup := make(map[string][]EventOptionModel)
+	for _, o := range optRows {
+		optsByGroup[o.GroupID] = append(optsByGroup[o.GroupID], o)
+	}
+
+	// Load all answers for groups of this module, joined with user info
+	type answerRow struct {
+		ResponseID string         `gorm:"column:response_id"`
+		GroupID    string         `gorm:"column:group_id"`
+		OptionID   *string        `gorm:"column:option_id"`
+		TextValue  *string        `gorm:"column:text_value"`
+		UserID     string         `gorm:"column:user_id"`
+		UserName   sql.NullString `gorm:"column:user_name"`
+		UserEmail  sql.NullString `gorm:"column:user_email"`
+		ProjectID  *string        `gorm:"column:project_id"`
+	}
+	var ansRows []answerRow
+	err := r.db.WithContext(ctx).Raw(`
+SELECT era.response_id, era.group_id, era.option_id, era.text_value,
+       er.user_id, u.name AS user_name, u.email AS user_email, er.project_id
+FROM event_response_answers era
+JOIN event_responses er ON er.id = era.response_id
+LEFT JOIN users u ON u.id = er.user_id
+WHERE era.group_id IN ?
+ORDER BY era.group_id, era.option_id, u.name`, groupIDs).Scan(&ansRows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Index answers: group -> option -> []participants  (nil optionID = text/number)
+	type optKey struct{ groupID, optionID string }
+	optUsers := make(map[optKey][]eventdomain.SummaryParticipant)
+	textAnswers := make(map[string][]eventdomain.TextAnswerSummary) // groupID -> []
+
+	for _, a := range ansRows {
+		p := eventdomain.SummaryParticipant{
+			UserID:    a.UserID,
+			ProjectID: a.ProjectID,
+		}
+		if a.UserName.Valid {
+			p.UserName = a.UserName.String
+		}
+		if a.UserEmail.Valid {
+			p.UserEmail = a.UserEmail.String
+		}
+		if a.OptionID != nil {
+			k := optKey{a.GroupID, *a.OptionID}
+			optUsers[k] = append(optUsers[k], p)
+		} else {
+			val := ""
+			if a.TextValue != nil {
+				val = *a.TextValue
+			}
+			textAnswers[a.GroupID] = append(textAnswers[a.GroupID], eventdomain.TextAnswerSummary{Value: val, User: p})
+		}
+	}
+
+	// Build summary
+	groups := make([]eventdomain.GroupSummary, 0, len(groupRows))
+	for _, g := range groupRows {
+		dg := toDomainGroup(&g)
+		opts := optsByGroup[g.ID]
+		optSummaries := make([]eventdomain.OptionSummary, 0, len(opts))
+		for _, o := range opts {
+			do := toDomainOpt(&o)
+			k := optKey{g.ID, o.ID}
+			optSummaries = append(optSummaries, eventdomain.OptionSummary{
+				Option: *do,
+				Users:  optUsers[k],
+			})
+		}
+		groups = append(groups, eventdomain.GroupSummary{
+			Group:       *dg,
+			Options:     optSummaries,
+			TextAnswers: textAnswers[g.ID],
+		})
+	}
+
+	return &eventdomain.ModuleResponseSummary{
+		Module: *toDomainMod(&modRow),
+		Groups: groups,
+	}, nil
 }

@@ -281,13 +281,16 @@ func (h *Handler) ReturnRequest(c *gin.Context) {
 }
 
 func (h *Handler) ListNotifications(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	params := pagination.NewParams(page, pageSize)
 	userID := c.GetString(userhttp.AuthUserIDKey)
-	notifs, err := h.listNotificationsUC.Execute(c.Request.Context(), userID)
+	result, err := h.listNotificationsUC.Execute(c.Request.Context(), userID, params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, toNotificationListResponse(notifs))
+	c.JSON(http.StatusOK, toNotificationListResponse(result))
 }
 
 func (h *Handler) MarkNotificationRead(c *gin.Context) {

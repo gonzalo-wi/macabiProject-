@@ -44,10 +44,15 @@ type brevoRecipient struct {
 const brevoSenderDisplayName = "Macabi Madrijim"
 
 func (m *BrevoTransactionalMailer) SendInvitationLink(ctx context.Context, toEmail, acceptURL string) error {
-	return m.send(ctx, toEmail, "Invitación a Macabi Madrijim",
-		fmt.Sprintf(`<p>Te invitaron a crear tu cuenta en Macabi Madrijim.</p>
-<p><a href="%s">Completá tu registro y elegí tu contraseña</a></p>
-<p>Si no esperabas este correo, ignoralo.</p>`, acceptURL))
+	body := fmt.Sprintf(`
+<p style="margin:0 0 12px;font-size:15px;color:#374151;">Fuiste invitado/a a unirte a la plataforma de gestión de <strong>Macabi Madrijim</strong>.</p>
+<p style="margin:0 0 4px;font-size:14px;color:#6b7280;">Hacé clic en el botón para completar tu registro y elegir tu contraseña. El enlace tiene un tiempo de validez limitado.</p>
+%s
+<p style="margin:24px 0 0;font-size:13px;color:#9ca3af;">Si no esperabas esta invitación, podés ignorar este mensaje sin problema.</p>`,
+		ctaButton(acceptURL, "Aceptar invitación", "#4f46e5"),
+	)
+	html := emailLayout("#4f46e5", "Te invitaron a Macabi Madrijim", "Completá tu registro para comenzar", body)
+	return m.send(ctx, toEmail, "Invitación a Macabi Madrijim", html)
 }
 
 func (m *BrevoTransactionalMailer) send(ctx context.Context, toEmail, subject, html string) error {

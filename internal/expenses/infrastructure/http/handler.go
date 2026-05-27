@@ -444,13 +444,14 @@ func (h *Handler) ReceiptView(c *gin.Context) {
 }
 
 func (h *Handler) ListNotifications(c *gin.Context) {
+	params := pagination.NewParams(parsePage(c.DefaultQuery("page", "1"), 1), parsePage(c.DefaultQuery("page_size", "20"), 20))
 	userID := c.GetString(userhttp.AuthUserIDKey)
-	notifs, err := h.listNotifs.Execute(c.Request.Context(), userID)
+	result, err := h.listNotifs.Execute(c.Request.Context(), userID, params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, toExpenseNotificationListResponse(notifs))
+	c.JSON(http.StatusOK, toExpenseNotificationListResponse(result))
 }
 
 func (h *Handler) MarkNotificationRead(c *gin.Context) {

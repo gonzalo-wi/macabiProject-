@@ -219,8 +219,15 @@ type adminResponseRow struct {
 	Answers  []answerResponse       `json:"answers"`
 }
 
-type adminResponsesResult struct {
-	Data []adminResponseRow `json:"data"`
+func toAdminResponseListResponse(result pagination.Result[eventdomain.EventResponseWithParticipant]) pagination.Result[adminResponseRow] {
+	rows := toAdminResponseRows(result.Data)
+	return pagination.Result[adminResponseRow]{
+		Data:       rows,
+		Total:      result.Total,
+		Page:       result.Page,
+		PageSize:   result.PageSize,
+		TotalPages: result.TotalPages,
+	}
 }
 
 // ── Response mappers ───────────────────────────────────────────────────────────
@@ -357,4 +364,87 @@ func toAdminResponseRows(list []eventdomain.EventResponseWithParticipant) []admi
 		}
 	}
 	return rows
+}
+
+// ── Module response summary DTOs ───────────────────────────────────────────────
+
+type summaryParticipantJSON struct {
+	UserID    string  `json:"user_id"`
+	UserName  string  `json:"user_name"`
+	UserEmail string  `json:"user_email"`
+	ProjectID *string `json:"project_id"`
+}
+
+type optionSummaryJSON struct {
+	ID           string                   `json:"id"`
+	Label        string                   `json:"label"`
+	MaxCapacity  *int                     `json:"max_capacity"`
+	CurrentCount int                      `json:"current_count"`
+	Count        int                      `json:"count"`
+	Users        []summaryParticipantJSON `json:"users"`
+}
+
+type textAnswerSummaryJSON struct {
+	Value string                 `json:"value"`
+	User  summaryParticipantJSON `json:"user"`
+}
+
+type groupSummaryJSON struct {
+	ID          string                  `json:"id"`
+	Name        string                  `json:"name"`
+	Type        string                  `json:"type"`
+	IsRequired  bool                    `json:"is_required"`
+	Options     []optionSummaryJSON     `json:"options"`
+	TextAnswers []textAnswerSummaryJSON `json:"text_answers"`
+}
+
+type moduleResponseSummaryJSON struct {
+	Module struct {
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Type  string `json:"type"`
+	} `json:"module"`
+	Groups []groupSummaryJSON `json:"groups"`
+}
+
+func toModuleResponseSummaryJSON(s *eventdomain.ModuleResponseSummary) moduleResponseSummaryJSON {
+	groups := make([]groupSummaryJSON, len(s.Groups))
+	for i, g := range s.Groups {
+		opts := make([]optionSummaryJSON, len(g.Options))
+		for j, o := range g.Options {
+			users := make([]summaryParticipantJSON, len(o.Users))
+			for k, u := range o.Users {
+				users[k] = summaryParticipantJSON{UserID: u.UserID, UserName: u.UserName, UserEmail: u.UserEmail, ProjectID: u.ProjectID}
+			}
+			opts[j] = optionSummaryJSON{
+				ID:           o.Option.ID,
+				Label:        o.Option.Label,
+				MaxCapacity:  o.Option.MaxCapacity,
+				CurrentCount: o.Option.CurrentCount,
+				Count:        len(users),
+				Users:        users,
+			}
+		}
+		texts := make([]textAnswerSummaryJSON, len(g.TextAnswers))
+		for j, t := range g.TextAnswers {
+			texts[j] = textAnswerSummaryJSON{
+				Value: t.Value,
+				User:  summaryParticipantJSON{UserID: t.User.UserID, UserName: t.User.UserName, UserEmail: t.User.UserEmail, ProjectID: t.User.ProjectID},
+			}
+		}
+		groups[i] = groupSummaryJSON{
+			ID:          g.Group.ID,
+			Name:        g.Group.Name,
+			Type:        string(g.Group.Type),
+			IsRequired:  g.Group.IsRequired,
+			Options:     opts,
+			TextAnswers: texts,
+		}
+	}
+	var out moduleResponseSummaryJSON
+	out.Module.ID = s.Module.ID
+	out.Module.Title = s.Module.Title
+	out.Module.Type = string(s.Module.Type)
+	out.Groups = groups
+	return out
 }

@@ -20,7 +20,6 @@ func NewUser(name, email, hashedPassword string) (*User, error) {
 	return NewUserWithRole(name, email, hashedPassword, RoleUser)
 }
 
-// NewUserWithRole validates name/email and builds a user with the given role (e.g. from an invitation).
 func NewUserWithRole(name, email, hashedPassword string, role Role) (*User, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {

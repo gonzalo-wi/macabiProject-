@@ -126,9 +126,9 @@ func summaryToResp(s *expensesports.ProjectExpenseSummary) summaryResponse {
 	return summaryResponse{TotalApproved: s.TotalApproved.String(), ByMonth: by}
 }
 
-func toExpenseNotificationListResponse(notifs []expensesdomain.ExpenseNotification) []expenseNotificationResponse {
-	out := make([]expenseNotificationResponse, len(notifs))
-	for i, n := range notifs {
+func toExpenseNotificationListResponse(result pagination.Result[expensesdomain.ExpenseNotification]) pagination.Result[expenseNotificationResponse] {
+	out := make([]expenseNotificationResponse, len(result.Data))
+	for i, n := range result.Data {
 		resp := expenseNotificationResponse{
 			ID:        n.ID,
 			ExpenseID: n.ExpenseID,
@@ -142,7 +142,13 @@ func toExpenseNotificationListResponse(notifs []expensesdomain.ExpenseNotificati
 		}
 		out[i] = resp
 	}
-	return out
+	return pagination.Result[expenseNotificationResponse]{
+		Data:       out,
+		Total:      result.Total,
+		Page:       result.Page,
+		PageSize:   result.PageSize,
+		TotalPages: result.TotalPages,
+	}
 }
 
 func parseExpenseDate(layout, v string) (time.Time, error) {

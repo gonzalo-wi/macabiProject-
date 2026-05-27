@@ -5,6 +5,7 @@ import (
 
 	eventports "macabi-back/internal/event/application/ports"
 	eventdomain "macabi-back/internal/event/domain"
+	"macabi-back/internal/shared/pagination"
 )
 
 type ListEventResponses struct {
@@ -15,9 +16,9 @@ func NewListEventResponses(repo eventports.Repository) *ListEventResponses {
 	return &ListEventResponses{repo: repo}
 }
 
-func (uc *ListEventResponses) Execute(ctx context.Context, eventID string) ([]eventdomain.EventResponseWithParticipant, error) {
+func (uc *ListEventResponses) Execute(ctx context.Context, eventID string, params pagination.Params) (pagination.Result[eventdomain.EventResponseWithParticipant], error) {
 	if _, err := uc.repo.FindInstanceByID(ctx, eventID); err != nil {
-		return nil, err
+		return pagination.Result[eventdomain.EventResponseWithParticipant]{}, err
 	}
-	return uc.repo.ListResponsesForEvent(ctx, eventID)
+	return uc.repo.ListResponsesForEvent(ctx, eventID, params)
 }

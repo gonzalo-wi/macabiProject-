@@ -43,11 +43,17 @@ func (m *BrevoPasswordResetMailer) SendResetLink(ctx context.Context, toEmail, r
 		},
 		To:      []brevoRecipient{{Email: toEmail}},
 		Subject: "Restablecer contraseña — Macabi Madrijim",
-		HTMLContent: fmt.Sprintf(
-			`<p>Recibimos una solicitud para restablecer tu contraseña en Macabi Madrijim.</p>
-<p><a href="%s">Hacé clic aquí para elegir una nueva contraseña</a></p>
-<p>Si no pediste este cambio, podés ignorar este mensaje. El enlace deja de ser válido tras usarse o al pasar el tiempo indicado.</p>`,
-			resetURL,
+		HTMLContent: emailLayout(
+			"#d97706",
+			"Restablecer contraseña",
+			"Seguí los pasos para elegir una nueva contraseña",
+			fmt.Sprintf(`
+<p style="margin:0 0 12px;font-size:15px;color:#374151;">Recibimos una solicitud para restablecer la contraseña de tu cuenta en <strong>Macabi Madrijim</strong>.</p>
+<p style="margin:0 0 4px;font-size:14px;color:#6b7280;">Hacé clic en el botón para elegir una nueva contraseña. El enlace es de un solo uso y tiene un tiempo de validez limitado.</p>
+%s
+<p style="margin:24px 0 0;font-size:13px;color:#9ca3af;">Si no solicitaste este cambio, podés ignorar este mensaje. Tu contraseña actual no se modificará.</p>`,
+				ctaButton(resetURL, "Restablecer contraseña", "#d97706"),
+			),
 		),
 	}
 	raw, err := json.Marshal(body)
