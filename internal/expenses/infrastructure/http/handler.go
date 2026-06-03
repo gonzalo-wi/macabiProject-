@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesusecases "macabi-back/internal/expenses/application/usecases"
 	expensesdomain "macabi-back/internal/expenses/domain"
 	sharederrors "macabi-back/internal/shared/errors"
@@ -20,6 +21,7 @@ type Handler struct {
 	createWithReceipt *expensesusecases.CreateExpenseWithReceipt
 	getExp            *expensesusecases.GetExpense
 	listProj          *expensesusecases.ListProjectExpenses
+	listAll           *expensesusecases.ListAllExpenses
 	listMine          *expensesusecases.ListMyExpenses
 	upd               *expensesusecases.UpdateExpense
 	approve           *expensesusecases.ApproveExpense
@@ -29,8 +31,11 @@ type Handler struct {
 	recUpload         *expensesusecases.ReceiptUploadURL
 	recUploadFile     *expensesusecases.ReceiptUploadFile
 	recView           *expensesusecases.ReceiptDownloadURL
+	removeReceipt     *expensesusecases.RemoveReceipt
+	analytics         *expensesusecases.ExpenseAnalytics
 	listNotifs        *expensesusecases.ListExpenseNotifications
 	markNotifRead     *expensesusecases.MarkExpenseNotificationRead
+	markAllNotifsRead *expensesusecases.MarkAllExpenseNotificationsRead
 	unreadNotifs      *expensesusecases.UnreadExpenseNotificationCount
 }
 
@@ -39,6 +44,7 @@ func NewHandler(
 	createWithReceipt *expensesusecases.CreateExpenseWithReceipt,
 	getExp *expensesusecases.GetExpense,
 	listProj *expensesusecases.ListProjectExpenses,
+	listAll *expensesusecases.ListAllExpenses,
 	listMine *expensesusecases.ListMyExpenses,
 	upd *expensesusecases.UpdateExpense,
 	approve *expensesusecases.ApproveExpense,
@@ -48,8 +54,11 @@ func NewHandler(
 	recUpload *expensesusecases.ReceiptUploadURL,
 	recUploadFile *expensesusecases.ReceiptUploadFile,
 	recView *expensesusecases.ReceiptDownloadURL,
+	removeReceipt *expensesusecases.RemoveReceipt,
+	analytics *expensesusecases.ExpenseAnalytics,
 	listNotifs *expensesusecases.ListExpenseNotifications,
 	markNotifRead *expensesusecases.MarkExpenseNotificationRead,
+	markAllNotifsRead *expensesusecases.MarkAllExpenseNotificationsRead,
 	unreadNotifs *expensesusecases.UnreadExpenseNotificationCount,
 ) *Handler {
 	return &Handler{
@@ -57,6 +66,7 @@ func NewHandler(
 		createWithReceipt: createWithReceipt,
 		getExp:            getExp,
 		listProj:          listProj,
+		listAll:           listAll,
 		listMine:          listMine,
 		upd:               upd,
 		approve:           approve,
@@ -66,8 +76,11 @@ func NewHandler(
 		recUpload:         recUpload,
 		recUploadFile:     recUploadFile,
 		recView:           recView,
+		removeReceipt:     removeReceipt,
+		analytics:         analytics,
 		listNotifs:        listNotifs,
 		markNotifRead:     markNotifRead,
+		markAllNotifsRead: markAllNotifsRead,
 		unreadNotifs:      unreadNotifs,
 	}
 }
@@ -202,6 +215,39 @@ func (h *Handler) ListMine(c *gin.Context) {
 	c.JSON(http.StatusOK, listResp(res))
 }
 
+func (h *Handler) ListAll(c *gin.Context) {
+	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
+	filter := expensesports.ExpenseListFilter{
+		ProjectID: strings.TrimSpace(c.Query("project_id")),
+		Status:    strings.TrimSpace(c.Query("status")),
+		Query:     strings.TrimSpace(c.Query("q")),
+	}
+	if f := strings.TrimSpace(c.Query("from")); f != "" {
+		t0, err := time.Parse("2006-01-02", f)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+			return
+		}
+		tUTC := t0.UTC().Truncate(24 * time.Hour)
+		filter.From = &tUTC
+	}
+	if f := strings.TrimSpace(c.Query("to")); f != "" {
+		t1, err := time.Parse("2006-01-02", f)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+			return
+		}
+		tUTC := t1.UTC().Truncate(24 * time.Hour)
+		filter.To = &tUTC
+	}
+	res, err := h.listAll.Execute(c.Request.Context(), filter, params)
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, listResp(res))
+}
+
 func (h *Handler) ListByProject(c *gin.Context) {
 	pid := c.Param("id")
 	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
@@ -267,7 +313,7 @@ func (h *Handler) Get(c *gin.Context) {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, expenseToResp(*exp, ""))
+	c.JSON(http.StatusOK, detailItemToExpenseResponse(*exp))
 }
 
 func (h *Handler) Patch(c *gin.Context) {
@@ -443,6 +489,46 @@ func (h *Handler) ReceiptView(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"view_url": res.ViewURL})
 }
 
+func (h *Handler) Analytics(c *gin.Context) {
+	var fromPtr, toPtr *time.Time
+	if f := strings.TrimSpace(c.Query("from")); f != "" {
+		t0, err := time.Parse("2006-01-02", f)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+			return
+		}
+		tUTC := t0.UTC().Truncate(24 * time.Hour)
+		fromPtr = &tUTC
+	}
+	if f := strings.TrimSpace(c.Query("to")); f != "" {
+		t1, err := time.Parse("2006-01-02", f)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+			return
+		}
+		tUTC := t1.UTC().Truncate(24 * time.Hour)
+		toPtr = &tUTC
+	}
+	out, err := h.analytics.Execute(c.Request.Context(), expensesusecases.ExpenseAnalyticsInput{From: fromPtr, To: toPtr})
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, analyticsToResp(out))
+}
+
+func (h *Handler) RemoveReceipt(c *gin.Context) {
+	if err := h.removeReceipt.Execute(c.Request.Context(), expensesusecases.RemoveReceiptInput{
+		ExpenseID: c.Param("id"),
+		ActorID:   c.GetString(userhttp.AuthUserIDKey),
+		UserRole:  c.GetString(userhttp.AuthRoleKey),
+	}); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *Handler) ListNotifications(c *gin.Context) {
 	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
 	userID := c.GetString(userhttp.AuthUserIDKey)
@@ -457,6 +543,15 @@ func (h *Handler) ListNotifications(c *gin.Context) {
 func (h *Handler) MarkNotificationRead(c *gin.Context) {
 	userID := c.GetString(userhttp.AuthUserIDKey)
 	if err := h.markNotifRead.Execute(c.Request.Context(), c.Param("id"), userID); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) MarkAllNotificationsRead(c *gin.Context) {
+	userID := c.GetString(userhttp.AuthUserIDKey)
+	if err := h.markAllNotifsRead.Execute(c.Request.Context(), userID); err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}

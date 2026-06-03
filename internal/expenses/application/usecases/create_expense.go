@@ -78,11 +78,14 @@ func (uc *CreateExpense) Execute(ctx context.Context, input CreateExpenseInput) 
 		exp.Currency = strings.TrimSpace(input.Currency)
 	}
 
+	// Auto-aprobación alineada a Stock: solo el coordinador del proyecto
+	// auto-aprueba su propio gasto. Un admin (no coordinador) queda PENDIENTE
+	// para dejar rastro de quién lo aprueba.
 	coord, err := uc.projects.IsProjectCoordinator(ctx, pid, input.SubmittedBy)
 	if err != nil {
 		return nil, err
 	}
-	if isAdmin || coord {
+	if coord {
 		now := time.Now().UTC()
 		u := input.SubmittedBy
 		exp.Status = expensesdomain.StatusApproved
@@ -130,6 +133,6 @@ func (uc *CreateExpense) notifyCoordinatorsNewExpense(ctx context.Context, exp *
 		for _, e := range emails {
 			addrs = append(addrs, e)
 		}
-		_ = uc.mailer.NotifyCoordinatorsNewExpense(ctx, addrs, amountLabel, exp.Description, projectName)
+		_ = uc.mailer.NotifyCoordinatorsNewExpense(ctx, addrs, amountLabel, exp.Description, projectName, exp.ID)
 	}
 }

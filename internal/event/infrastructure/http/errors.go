@@ -17,8 +17,12 @@ func httpStatus(err error) int {
 		errors.Is(err, eventdomain.ErrInvalidModuleType),
 		errors.Is(err, eventdomain.ErrInvalidOptionGroupType):
 		return http.StatusBadRequest
-	case errors.Is(err, eventdomain.ErrOptionCapacityReached):
+	case errors.Is(err, eventdomain.ErrOptionCapacityReached),
+		errors.Is(err, eventdomain.ErrDuplicateResponse):
 		return http.StatusConflict
+	case errors.Is(err, eventdomain.ErrEventNotOpen),
+		errors.Is(err, eventdomain.ErrResponseDeadlinePassed):
+		return http.StatusForbidden
 	default:
 		return http.StatusInternalServerError
 	}

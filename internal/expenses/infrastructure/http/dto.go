@@ -49,6 +49,7 @@ type expenseResponse struct {
 	ProjectName        string  `json:"project_name,omitempty"`
 	SubmittedByUserID  string  `json:"submitted_by_user_id"`
 	SubmitterName      string  `json:"submitter_name,omitempty"`
+	ApprovedByName     string  `json:"approved_by_name,omitempty"`
 	Amount             string  `json:"amount"`
 	Currency           string  `json:"currency"`
 	Description        string  `json:"description"`
@@ -65,6 +66,49 @@ type expenseResponse struct {
 type summaryResponse struct {
 	TotalApproved string                  `json:"total_approved"`
 	ByMonth       []monthlyBucketResponse `json:"by_month"`
+}
+
+type analyticsResponse struct {
+	TotalApproved string                     `json:"total_approved"`
+	TotalCount    int64                      `json:"total_count"`
+	PendingCount  int64                      `json:"pending_count"`
+	ApprovedCount int64                      `json:"approved_count"`
+	RejectedCount int64                      `json:"rejected_count"`
+	Granularity   string                     `json:"granularity"`
+	ByProject     []analyticsProjectResponse `json:"by_project"`
+	ByBucket      []analyticsBucketResponse  `json:"by_bucket"`
+}
+
+type analyticsProjectResponse struct {
+	ProjectID   string `json:"project_id"`
+	ProjectName string `json:"project_name"`
+	Total       string `json:"total"`
+}
+
+type analyticsBucketResponse struct {
+	Bucket string `json:"bucket"`
+	Total  string `json:"total"`
+}
+
+func analyticsToResp(a *expensesports.ExpenseAnalyticsResult) analyticsResponse {
+	byProject := make([]analyticsProjectResponse, len(a.ByProject))
+	for i, p := range a.ByProject {
+		byProject[i] = analyticsProjectResponse{ProjectID: p.ProjectID, ProjectName: p.ProjectName, Total: p.Total.String()}
+	}
+	byBucket := make([]analyticsBucketResponse, len(a.ByBucket))
+	for i, b := range a.ByBucket {
+		byBucket[i] = analyticsBucketResponse{Bucket: b.Bucket, Total: b.Total.String()}
+	}
+	return analyticsResponse{
+		TotalApproved: a.TotalApproved.String(),
+		TotalCount:    a.TotalCount,
+		PendingCount:  a.PendingCount,
+		ApprovedCount: a.ApprovedCount,
+		RejectedCount: a.RejectedCount,
+		Granularity:   a.Granularity,
+		ByProject:     byProject,
+		ByBucket:      byBucket,
+	}
 }
 
 type monthlyBucketResponse struct {
@@ -100,6 +144,13 @@ func expenseToResp(e expensesdomain.Expense, submitter string) expenseResponse {
 func listItemToExpenseResponse(row expensesdomain.ExpenseListItem) expenseResponse {
 	out := expenseToResp(row.Expense, row.SubmitterName)
 	out.ProjectName = row.ProjectName
+	return out
+}
+
+func detailItemToExpenseResponse(d expensesdomain.ExpenseDetailItem) expenseResponse {
+	out := expenseToResp(d.Expense, d.SubmitterName)
+	out.ProjectName = d.ProjectName
+	out.ApprovedByName = d.ApproverName
 	return out
 }
 

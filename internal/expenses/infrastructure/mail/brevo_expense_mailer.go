@@ -5,24 +5,27 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"macabi-back/internal/shared/email"
 )
 
 type BrevoExpenseMailer struct {
-	apiKey string
-	from   string
-	client *http.Client
+	apiKey      string
+	from        string
+	frontendURL string
+	client      *http.Client
 }
 
-func NewBrevoExpenseMailer(apiKey, fromEmail string) *BrevoExpenseMailer {
+func NewBrevoExpenseMailer(apiKey, fromEmail, frontendURL string) *BrevoExpenseMailer {
 	return &BrevoExpenseMailer{
-		apiKey: strings.TrimSpace(apiKey),
-		from:   strings.TrimSpace(fromEmail),
-		client: &http.Client{Timeout: 30 * time.Second},
+		apiKey:      strings.TrimSpace(apiKey),
+		from:        strings.TrimSpace(fromEmail),
+		frontendURL: strings.TrimSuffix(strings.TrimSpace(frontendURL), "/"),
+		client:      &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -32,15 +35,15 @@ func NewNoOpExpenseMailer() *noopExpenseMailer {
 	return &noopExpenseMailer{}
 }
 
-func (noopExpenseMailer) NotifyCoordinatorsNewExpense(context.Context, []string, string, string, string) error {
+func (noopExpenseMailer) NotifyCoordinatorsNewExpense(context.Context, []string, string, string, string, string) error {
 	return nil
 }
 
-func (noopExpenseMailer) NotifySubmitterApproved(context.Context, string, string, string) error {
+func (noopExpenseMailer) NotifySubmitterApproved(context.Context, string, string, string, string) error {
 	return nil
 }
 
-func (noopExpenseMailer) NotifySubmitterRejected(context.Context, string, string, string, string) error {
+func (noopExpenseMailer) NotifySubmitterRejected(context.Context, string, string, string, string, string) error {
 	return nil
 }
 
@@ -60,9 +63,11 @@ type brevoRecipient struct {
 	Email string `json:"email"`
 }
 
-const senderDisplayName = "Macabi Madrijim"
+func (m *BrevoExpenseMailer) expenseURL(expenseID string) string {
+	return fmt.Sprintf("%s/app/gastos/%s", m.frontendURL, expenseID)
+}
 
-func (m *BrevoExpenseMailer) NotifyCoordinatorsNewExpense(ctx context.Context, coordinatorEmails []string, amount, description, projectName string) error {
+func (m *BrevoExpenseMailer) NotifyCoordinatorsNewExpense(ctx context.Context, coordinatorEmails []string, amount, description, projectName, expenseID string) error {
 	if len(coordinatorEmails) == 0 {
 		return nil
 	}
@@ -75,59 +80,63 @@ func (m *BrevoExpenseMailer) NotifyCoordinatorsNewExpense(ctx context.Context, c
 	if len(to) == 0 {
 		return nil
 	}
-	htmlBody := fmt.Sprintf(
-		`<p>Hay un nuevo gasto pendiente de aprobación en el proyecto <strong>%s</strong>:</p>
-<ul>
-  <li><strong>Monto:</strong> %s</li>
-  <li><strong>Descripción:</strong> %s</li>
-</ul>
-<p>Ingresá a la plataforma para aprobarlo o rechazarlo.</p>`,
-		html.EscapeString(projectName),
-		html.EscapeString(amount),
-		html.EscapeString(description),
+	body := fmt.Sprintf(`
+<p style="margin:0 0 8px;font-size:15px;color:#374151;">Hay un nuevo gasto <strong>pendiente de aprobación</strong>.</p>
+<p style="margin:0;font-size:14px;color:#6b7280;">Revisá los detalles y aprobalo o rechazalo desde la plataforma.</p>
+%s
+%s`,
+		email.DetailsCard([]email.DetailRow{
+			{Label: "Proyecto", Value: projectName},
+			{Label: "Monto", Value: amount},
+			{Label: "Descripción", Value: description},
+		}),
+		email.CTAButton(m.expenseURL(expenseID), "Ver gasto", "#2563eb"),
 	)
-	return m.send(ctx, to, "Nuevo gasto pendiente — Macabi Madrijim", htmlBody)
+	html := email.Layout("#2563eb", "Nuevo gasto pendiente", body)
+	return m.send(ctx, to, "Nuevo gasto pendiente — Macabi Madrijim", html)
 }
 
-func (m *BrevoExpenseMailer) NotifySubmitterApproved(ctx context.Context, submitterEmail, amount, description string) error {
+func (m *BrevoExpenseMailer) NotifySubmitterApproved(ctx context.Context, submitterEmail, amount, description, expenseID string) error {
 	to := strings.TrimSpace(strings.ToLower(submitterEmail))
 	if to == "" {
 		return nil
 	}
-	htmlBody := fmt.Sprintf(
-		`<p>Tu gasto fue <strong>aprobado</strong>.</p>
-<ul>
-  <li><strong>Monto:</strong> %s</li>
-  <li><strong>Descripción:</strong> %s</li>
-</ul>`,
-		html.EscapeString(amount),
-		html.EscapeString(description),
+	body := fmt.Sprintf(`
+<p style="margin:0 0 8px;font-size:15px;color:#374151;">Tu gasto fue <strong style="color:#16a34a;">aprobado</strong> ✓</p>
+%s
+%s`,
+		email.DetailsCard([]email.DetailRow{
+			{Label: "Monto", Value: amount},
+			{Label: "Descripción", Value: description},
+		}),
+		email.CTAButton(m.expenseURL(expenseID), "Ver gasto", "#16a34a"),
 	)
-	return m.send(ctx, []brevoRecipient{{Email: to}}, "Gasto aprobado — Macabi Madrijim", htmlBody)
+	html := email.Layout("#16a34a", "Gasto aprobado", body)
+	return m.send(ctx, []brevoRecipient{{Email: to}}, "Gasto aprobado — Macabi Madrijim", html)
 }
 
-func (m *BrevoExpenseMailer) NotifySubmitterRejected(ctx context.Context, submitterEmail, amount, description, reason string) error {
+func (m *BrevoExpenseMailer) NotifySubmitterRejected(ctx context.Context, submitterEmail, amount, description, reason, expenseID string) error {
 	to := strings.TrimSpace(strings.ToLower(submitterEmail))
 	if to == "" {
 		return nil
 	}
-	reasonBlock := ""
-	if strings.TrimSpace(reason) != "" {
-		reasonBlock = fmt.Sprintf(`<li><strong>Motivo:</strong> %s</li>`, html.EscapeString(strings.TrimSpace(reason)))
+	rows := []email.DetailRow{
+		{Label: "Monto", Value: amount},
+		{Label: "Descripción", Value: description},
 	}
-	htmlBody := fmt.Sprintf(
-		`<p>Tu gasto fue <strong>rechazado</strong>.</p>
-<ul>
-  <li><strong>Monto:</strong> %s</li>
-  <li><strong>Descripción:</strong> %s</li>
-  %s
-</ul>
-<p>Contactá a tu coordinador para más información.</p>`,
-		html.EscapeString(amount),
-		html.EscapeString(description),
-		reasonBlock,
+	if r := strings.TrimSpace(reason); r != "" {
+		rows = append(rows, email.DetailRow{Label: "Motivo", Value: r})
+	}
+	body := fmt.Sprintf(`
+<p style="margin:0 0 8px;font-size:15px;color:#374151;">Tu gasto fue <strong style="color:#dc2626;">rechazado</strong>.</p>
+<p style="margin:0;font-size:14px;color:#6b7280;">Contactá a tu coordinador para más información.</p>
+%s
+%s`,
+		email.DetailsCard(rows),
+		email.CTAButton(m.expenseURL(expenseID), "Ver gasto", "#dc2626"),
 	)
-	return m.send(ctx, []brevoRecipient{{Email: to}}, "Gasto rechazado — Macabi Madrijim", htmlBody)
+	html := email.Layout("#dc2626", "Gasto rechazado", body)
+	return m.send(ctx, []brevoRecipient{{Email: to}}, "Gasto rechazado — Macabi Madrijim", html)
 }
 
 func (m *BrevoExpenseMailer) send(ctx context.Context, to []brevoRecipient, subject, htmlContent string) error {
@@ -135,7 +144,7 @@ func (m *BrevoExpenseMailer) send(ctx context.Context, to []brevoRecipient, subj
 		return nil
 	}
 	body := brevoSendEmailRequest{
-		Sender:      brevoSender{Email: m.from, Name: senderDisplayName},
+		Sender:      brevoSender{Email: m.from, Name: email.SenderDisplayName},
 		To:          to,
 		Subject:     subject,
 		HTMLContent: htmlContent,

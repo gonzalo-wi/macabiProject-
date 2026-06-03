@@ -2,6 +2,7 @@ package expensesusecases
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -55,8 +56,15 @@ func (uc *ApproveExpense) Execute(ctx context.Context, in MutationInput) error {
 		return err
 	}
 
+	_ = uc.repo.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
+		UserID:    exp.SubmittedByUserID,
+		ExpenseID: exp.ID,
+		ProjectID: exp.ProjectID,
+		Message:   fmt.Sprintf("Tu gasto fue aprobado: %s — %s", formatExpenseAmount(exp), exp.Description),
+	})
+
 	if email, err := uc.emails.FindEmailByID(ctx, exp.SubmittedByUserID); err == nil {
-		_ = uc.mailer.NotifySubmitterApproved(ctx, email, formatExpenseAmount(exp), exp.Description)
+		_ = uc.mailer.NotifySubmitterApproved(ctx, email, formatExpenseAmount(exp), exp.Description, exp.ID)
 	}
 	return nil
 }
@@ -104,8 +112,19 @@ func (uc *RejectExpense) Execute(ctx context.Context, in RejectExpenseInput) err
 		return err
 	}
 
+	rejectedMsg := fmt.Sprintf("Tu gasto fue rechazado: %s — %s", formatExpenseAmount(exp), exp.Description)
+	if r != "" {
+		rejectedMsg += fmt.Sprintf(" (motivo: %s)", r)
+	}
+	_ = uc.repo.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
+		UserID:    exp.SubmittedByUserID,
+		ExpenseID: exp.ID,
+		ProjectID: exp.ProjectID,
+		Message:   rejectedMsg,
+	})
+
 	if email, err := uc.emails.FindEmailByID(ctx, exp.SubmittedByUserID); err == nil {
-		_ = uc.mailer.NotifySubmitterRejected(ctx, email, formatExpenseAmount(exp), exp.Description, r)
+		_ = uc.mailer.NotifySubmitterRejected(ctx, email, formatExpenseAmount(exp), exp.Description, r, exp.ID)
 	}
 	return nil
 }

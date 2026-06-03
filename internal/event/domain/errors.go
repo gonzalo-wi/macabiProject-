@@ -11,4 +11,6 @@ var (
 	ErrOptionCapacityReached  = errors.New("cupo de opción agotado")
 	ErrDuplicateResponse      = errors.New("ya existe una respuesta para este evento")
 	ErrEmptyTitle             = errors.New("el título no puede estar vacío")
+	ErrEventNotOpen           = errors.New("la jornada no está abierta para respuestas")
+	ErrResponseDeadlinePassed = errors.New("el plazo de respuestas ya cerró")
 )

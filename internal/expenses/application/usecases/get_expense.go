@@ -23,8 +23,8 @@ type GetExpenseInput struct {
 	UserRole string
 }
 
-func (uc *GetExpense) Execute(ctx context.Context, input GetExpenseInput) (*expensesdomain.Expense, error) {
-	exp, err := uc.repo.FindByID(ctx, input.ID)
+func (uc *GetExpense) Execute(ctx context.Context, input GetExpenseInput) (*expensesdomain.ExpenseDetailItem, error) {
+	exp, err := uc.repo.FindDetailByID(ctx, input.ID)
 	if err != nil {
 		return nil, err
 	}
