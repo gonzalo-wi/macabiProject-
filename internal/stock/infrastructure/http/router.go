@@ -40,6 +40,7 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 
 		api.GET("/stock/notifications/unread-count", h.UnreadCount)
 		api.GET("/stock/notifications", h.ListNotifications)
+		api.PATCH("/stock/notifications/read-all", h.MarkAllNotificationsRead)
 		api.PATCH("/stock/notifications/:id/read", h.MarkNotificationRead)
 
 		// Web Push subscriptions

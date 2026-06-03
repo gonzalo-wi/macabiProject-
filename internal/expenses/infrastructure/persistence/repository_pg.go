@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -49,6 +50,13 @@ type expenseListRow struct {
 	ExpenseModel
 	SubmitterName string `gorm:"column:submitter_name"`
 	ProjectName   string `gorm:"column:project_name"`
+}
+
+type expenseDetailRow struct {
+	ExpenseModel
+	SubmitterName string `gorm:"column:submitter_name"`
+	ProjectName   string `gorm:"column:project_name"`
+	ApproverName  string `gorm:"column:approver_name"`
 }
 
 type ExpenseRepositoryPG struct {
@@ -101,6 +109,82 @@ func (r *ExpenseRepositoryPG) FindByID(ctx context.Context, id string) (*expense
 	var out expensesdomain.Expense
 	toDomainExpense(&m, &out)
 	return &out, nil
+}
+
+func (r *ExpenseRepositoryPG) FindDetailByID(ctx context.Context, id string) (*expensesdomain.ExpenseDetailItem, error) {
+	var row expenseDetailRow
+	err := r.db.WithContext(ctx).
+		Table("project_expenses e").
+		Select("e.*, u.name as submitter_name, p.name as project_name, a.name as approver_name").
+		Joins("JOIN users u ON u.id = e.submitted_by_user_id").
+		Joins("JOIN projects p ON p.id = e.project_id").
+		Joins("LEFT JOIN users a ON a.id = e.approved_by_user_id").
+		Where("e.id = ?", id).
+		Limit(1).
+		Scan(&row).Error
+	if err != nil {
+		return nil, err
+	}
+	if row.ID == "" {
+		return nil, expensesdomain.ErrExpenseNotFound
+	}
+	var e expensesdomain.Expense
+	toDomainExpense(&row.ExpenseModel, &e)
+	return &expensesdomain.ExpenseDetailItem{
+		Expense:       e,
+		SubmitterName: row.SubmitterName,
+		ProjectName:   row.ProjectName,
+		ApproverName:  row.ApproverName,
+	}, nil
+}
+
+func (r *ExpenseRepositoryPG) ListAll(ctx context.Context, filter expensesports.ExpenseListFilter, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error) {
+	apply := func(q *gorm.DB) *gorm.DB {
+		if filter.ProjectID != "" {
+			q = q.Where("e.project_id = ?", filter.ProjectID)
+		}
+		if filter.Status != "" {
+			q = q.Where("e.status = ?", filter.Status)
+		}
+		if filter.From != nil {
+			q = q.Where("e.expense_date >= ?", filter.From.UTC())
+		}
+		if filter.To != nil {
+			q = q.Where("e.expense_date <= ?", filter.To.UTC())
+		}
+		if s := strings.TrimSpace(filter.Query); s != "" {
+			like := "%" + strings.ToLower(s) + "%"
+			q = q.Where("(LOWER(e.description) LIKE ? OR LOWER(u.name) LIKE ? OR LOWER(p.name) LIKE ?)", like, like, like)
+		}
+		return q
+	}
+
+	base := func() *gorm.DB {
+		return r.db.WithContext(ctx).
+			Table("project_expenses e").
+			Joins("JOIN users u ON u.id = e.submitted_by_user_id").
+			Joins("JOIN projects p ON p.id = e.project_id")
+	}
+
+	var total int64
+	if err := apply(base()).Count(&total).Error; err != nil {
+		return pagination.Result[expensesdomain.ExpenseListItem]{}, err
+	}
+
+	var rows []expenseListRow
+	if err := apply(base().Select("e.*, u.name as submitter_name, p.name as project_name")).
+		Order("e.expense_date DESC, e.created_at DESC").
+		Offset(params.Offset()).
+		Limit(params.PageSize).
+		Scan(&rows).Error; err != nil {
+		return pagination.Result[expensesdomain.ExpenseListItem]{}, err
+	}
+
+	items := make([]expensesdomain.ExpenseListItem, len(rows))
+	for i, row := range rows {
+		items[i] = listRowToItem(row)
+	}
+	return pagination.NewResult(items, total, params), nil
 }
 
 func (r *ExpenseRepositoryPG) ListByProject(ctx context.Context, projectID string, onlySubmittedBy *string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error) {
@@ -165,6 +249,90 @@ func (r *ExpenseRepositoryPG) ListMine(ctx context.Context, userID string, param
 		items[i] = listRowToItem(row)
 	}
 	return pagination.NewResult(items, total, params), nil
+}
+
+func (r *ExpenseRepositoryPG) Analytics(ctx context.Context, from, to *time.Time, granularity string) (*expensesports.ExpenseAnalyticsResult, error) {
+	applyRange := func(q *gorm.DB) *gorm.DB {
+		if from != nil {
+			q = q.Where("expense_date >= ?", from.UTC())
+		}
+		if to != nil {
+			q = q.Where("expense_date <= ?", to.UTC())
+		}
+		return q
+	}
+	out := &expensesports.ExpenseAnalyticsResult{Granularity: granularity}
+	approved := string(expensesdomain.StatusApproved)
+
+	// Conteos por estado (respetan el rango de fechas).
+	type statusCount struct {
+		Status string
+		Cnt    int64
+	}
+	var scs []statusCount
+	if err := applyRange(r.db.WithContext(ctx).Model(&ExpenseModel{})).
+		Select("status, COUNT(*) as cnt").Group("status").Scan(&scs).Error; err != nil {
+		return nil, err
+	}
+	for _, s := range scs {
+		out.TotalCount += s.Cnt
+		switch s.Status {
+		case string(expensesdomain.StatusPending):
+			out.PendingCount = s.Cnt
+		case approved:
+			out.ApprovedCount = s.Cnt
+		case string(expensesdomain.StatusRejected):
+			out.RejectedCount = s.Cnt
+		}
+	}
+
+	// Aprobados por proyecto (torta).
+	type projRow struct {
+		ProjectID   string          `gorm:"column:project_id"`
+		ProjectName string          `gorm:"column:project_name"`
+		Total       decimal.Decimal `gorm:"column:total"`
+	}
+	var prs []projRow
+	if err := applyRange(r.db.WithContext(ctx).Table("project_expenses e")).
+		Select("e.project_id as project_id, p.name as project_name, COALESCE(SUM(e.amount),0) as total").
+		Joins("JOIN projects p ON p.id = e.project_id").
+		Where("e.status = ?", approved).
+		Group("e.project_id, p.name").
+		Order("total DESC").Scan(&prs).Error; err != nil {
+		return nil, err
+	}
+	for _, p := range prs {
+		out.TotalApproved = out.TotalApproved.Add(p.Total)
+		out.ByProject = append(out.ByProject, expensesports.AnalyticsProjectTotal{
+			ProjectID: p.ProjectID, ProjectName: p.ProjectName, Total: p.Total,
+		})
+	}
+
+	// Aprobados por bucket (barras): día o mes según granularidad.
+	truncUnit := "month"
+	bucketLayout := "2006-01"
+	if granularity == "day" {
+		truncUnit = "day"
+		bucketLayout = "2006-01-02"
+	}
+	type bucketRow struct {
+		Bucket time.Time       `gorm:"column:bucket"`
+		Total  decimal.Decimal `gorm:"column:total"`
+	}
+	var brs []bucketRow
+	if err := applyRange(r.db.WithContext(ctx).Table("project_expenses e")).
+		Select("date_trunc('"+truncUnit+"', e.expense_date) as bucket, COALESCE(SUM(e.amount),0) as total").
+		Where("e.status = ?", approved).
+		Group("bucket").Order("bucket ASC").Scan(&brs).Error; err != nil {
+		return nil, err
+	}
+	for _, b := range brs {
+		out.ByBucket = append(out.ByBucket, expensesports.AnalyticsBucketTotal{
+			Bucket: b.Bucket.UTC().Format(bucketLayout), Total: b.Total,
+		})
+	}
+
+	return out, nil
 }
 
 func (r *ExpenseRepositoryPG) SummaryByProject(ctx context.Context, projectID string, onlySubmittedBy *string, from, to *time.Time) (*expensesports.ProjectExpenseSummary, error) {
@@ -304,6 +472,14 @@ func (r *ExpenseRepositoryPG) MarkNotificationRead(ctx context.Context, id, user
 		return expensesdomain.ErrNotificationNotFound
 	}
 	return nil
+}
+
+func (r *ExpenseRepositoryPG) MarkAllNotificationsRead(ctx context.Context, userID string) (int64, error) {
+	now := time.Now()
+	res := r.db.WithContext(ctx).Model(&ExpenseNotificationModel{}).
+		Where("user_id = ? AND read_at IS NULL", userID).
+		Update("read_at", now)
+	return res.RowsAffected, res.Error
 }
 
 func (r *ExpenseRepositoryPG) UnreadNotificationCount(ctx context.Context, userID string) (int64, error) {

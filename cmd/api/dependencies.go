@@ -197,6 +197,7 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		stockusecases.NewGetRequestDetail(stockRepo, stockRepo),
 		stockusecases.NewListNotifications(stockRepo),
 		stockusecases.NewMarkNotificationRead(stockRepo),
+		stockusecases.NewMarkAllNotificationsRead(stockRepo),
 		stockusecases.NewUnreadNotificationCount(stockRepo),
 		stockusecases.NewRegisterPushSubscription(pushSubRepo),
 		stockusecases.NewUnregisterPushSubscription(pushSubRepo),
@@ -219,7 +220,7 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 
 	var expenseMailer expensesports.ExpenseMailer
 	if cfg.BrevoAPIKey != "" && cfg.BrevoEmailFrom != "" {
-		expenseMailer = expensesmail.NewBrevoExpenseMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom)
+		expenseMailer = expensesmail.NewBrevoExpenseMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom, cfg.FrontendPublicURL)
 	} else {
 		expenseMailer = expensesmail.NewNoOpExpenseMailer()
 	}
@@ -232,6 +233,7 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		expensesusecases.NewCreateExpenseWithReceipt(createExpenseUC, receiptUploadFileUC, expenseRepo),
 		expensesusecases.NewGetExpense(expenseRepo, stockRepo),
 		expensesusecases.NewListProjectExpenses(expenseRepo, stockRepo),
+		expensesusecases.NewListAllExpenses(expenseRepo),
 		expensesusecases.NewListMyExpenses(expenseRepo),
 		expensesusecases.NewUpdateExpense(expenseRepo, stockRepo),
 		expensesusecases.NewApproveExpense(expenseRepo, stockRepo, stockRepo, expenseMailer),
@@ -241,8 +243,11 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		expensesusecases.NewReceiptUploadURL(receiptSigner, expenseRepo, stockRepo),
 		receiptUploadFileUC,
 		expensesusecases.NewReceiptDownloadURL(receiptSigner, expenseRepo, stockRepo),
+		expensesusecases.NewRemoveReceipt(expenseRepo, stockRepo, receiptSigner),
+		expensesusecases.NewExpenseAnalytics(expenseRepo),
 		expensesusecases.NewListExpenseNotifications(expenseRepo),
 		expensesusecases.NewMarkExpenseNotificationRead(expenseRepo),
+		expensesusecases.NewMarkAllExpenseNotificationsRead(expenseRepo),
 		expensesusecases.NewUnreadExpenseNotificationCount(expenseRepo),
 	)
 

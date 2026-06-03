@@ -371,6 +371,14 @@ func (r *StockRepositoryPG) MarkNotificationRead(ctx context.Context, id, userID
 	return nil
 }
 
+func (r *StockRepositoryPG) MarkAllNotificationsRead(ctx context.Context, userID string) (int64, error) {
+	now := time.Now()
+	res := r.db.WithContext(ctx).Model(&NotificationModel{}).
+		Where("user_id = ? AND read_at IS NULL", userID).
+		Update("read_at", now)
+	return res.RowsAffected, res.Error
+}
+
 func (r *StockRepositoryPG) UnreadCount(ctx context.Context, userID string) (int64, error) {
 	var count int64
 	err := r.db.WithContext(ctx).Model(&NotificationModel{}).

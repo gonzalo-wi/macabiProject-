@@ -26,9 +26,10 @@ type Handler struct {
 	listRequestsUC         *stockusecases.ListRequests
 	listMyRequestsUC       *stockusecases.ListMyRequests
 	getRequestDetailUC     *stockusecases.GetRequestDetail
-	listNotificationsUC    *stockusecases.ListNotifications
-	markNotificationReadUC *stockusecases.MarkNotificationRead
-	unreadCountUC          *stockusecases.UnreadNotificationCount
+	listNotificationsUC       *stockusecases.ListNotifications
+	markNotificationReadUC    *stockusecases.MarkNotificationRead
+	markAllNotificationsReadUC *stockusecases.MarkAllNotificationsRead
+	unreadCountUC             *stockusecases.UnreadNotificationCount
 	registerPushSubUC      *stockusecases.RegisterPushSubscription
 	unregisterPushSubUC    *stockusecases.UnregisterPushSubscription
 	vapidPublicKey         string
@@ -51,6 +52,7 @@ func NewHandler(
 	getRequestDetailUC *stockusecases.GetRequestDetail,
 	listNotificationsUC *stockusecases.ListNotifications,
 	markNotificationReadUC *stockusecases.MarkNotificationRead,
+	markAllNotificationsReadUC *stockusecases.MarkAllNotificationsRead,
 	unreadCountUC *stockusecases.UnreadNotificationCount,
 	registerPushSubUC *stockusecases.RegisterPushSubscription,
 	unregisterPushSubUC *stockusecases.UnregisterPushSubscription,
@@ -71,9 +73,10 @@ func NewHandler(
 		listRequestsUC:         listRequestsUC,
 		listMyRequestsUC:       listMyRequestsUC,
 		getRequestDetailUC:     getRequestDetailUC,
-		listNotificationsUC:    listNotificationsUC,
-		markNotificationReadUC: markNotificationReadUC,
-		unreadCountUC:          unreadCountUC,
+		listNotificationsUC:        listNotificationsUC,
+		markNotificationReadUC:     markNotificationReadUC,
+		markAllNotificationsReadUC: markAllNotificationsReadUC,
+		unreadCountUC:              unreadCountUC,
 		registerPushSubUC:      registerPushSubUC,
 		unregisterPushSubUC:    unregisterPushSubUC,
 		vapidPublicKey:         vapidPublicKey,
@@ -287,6 +290,15 @@ func (h *Handler) ListNotifications(c *gin.Context) {
 func (h *Handler) MarkNotificationRead(c *gin.Context) {
 	userID := c.GetString(userhttp.AuthUserIDKey)
 	if err := h.markNotificationReadUC.Execute(c.Request.Context(), c.Param("id"), userID); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) MarkAllNotificationsRead(c *gin.Context) {
+	userID := c.GetString(userhttp.AuthUserIDKey)
+	if err := h.markAllNotificationsReadUC.Execute(c.Request.Context(), userID); err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}

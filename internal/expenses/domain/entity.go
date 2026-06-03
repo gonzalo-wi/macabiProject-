@@ -54,6 +54,14 @@ type ExpenseListItem struct {
 	ProjectName   string // set when joining projects for global lists / display
 }
 
+// ExpenseDetailItem is used for the single-expense detail view with denormalized names.
+type ExpenseDetailItem struct {
+	Expense
+	SubmitterName string
+	ProjectName   string
+	ApproverName  string // name of the user who approved (empty if not approved)
+}
+
 // ReceiptKeyPrefix returns the storage prefix for an expense's receipt object (POSIX-style keys).
 func ReceiptKeyPrefix(projectID, expenseID string) string {
 	return fmt.Sprintf("projects/%s/expenses/%s", projectID, expenseID)

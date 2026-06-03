@@ -17,3 +17,16 @@ func NewMarkExpenseNotificationRead(repo expensesports.ExpenseRepository) *MarkE
 func (uc *MarkExpenseNotificationRead) Execute(ctx context.Context, notifID, userID string) error {
 	return uc.repo.MarkNotificationRead(ctx, notifID, userID)
 }
+
+type MarkAllExpenseNotificationsRead struct {
+	repo expensesports.ExpenseRepository
+}
+
+func NewMarkAllExpenseNotificationsRead(repo expensesports.ExpenseRepository) *MarkAllExpenseNotificationsRead {
+	return &MarkAllExpenseNotificationsRead{repo: repo}
+}
+
+func (uc *MarkAllExpenseNotificationsRead) Execute(ctx context.Context, userID string) error {
+	_, err := uc.repo.MarkAllNotificationsRead(ctx, userID)
+	return err
+}
