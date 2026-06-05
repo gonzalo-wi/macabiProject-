@@ -7,7 +7,6 @@ import (
 	userdomain "macabi-back/internal/user/domain"
 )
 
-// UserInvitation is a pending invite row used by application services.
 type UserInvitation struct {
 	ID    string
 	Email string
@@ -15,7 +14,6 @@ type UserInvitation struct {
 	Role  userdomain.Role
 }
 
-// PendingUserInvitation is a not-yet-accepted invite (used_at IS NULL), including expired tokens.
 type PendingUserInvitation struct {
 	ID        string
 	Email     string

@@ -28,6 +28,9 @@ func main() {
 
 	deps := BuildDependencies(db, cfg)
 
+	scheduler := StartScheduler(deps.SendEventReminders)
+	defer scheduler.Stop()
+
 	r := SetupRouter(deps)
 
 	log.Printf("Server starting on port %s", cfg.Port)

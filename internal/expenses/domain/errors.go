@@ -15,4 +15,6 @@ var (
 	ErrReceiptTooLarge           = errors.New("el comprobante no puede superar 2 MB")
 	ErrReceiptAttachFailed       = errors.New("no se pudo guardar el comprobante; el gasto no fue creado")
 	ErrNotificationNotFound      = errors.New("notificación no encontrada")
+	ErrCategoryNotFound          = errors.New("categoría no encontrada")
+	ErrCategoryInUse             = errors.New("la categoría está siendo usada por uno o más gastos")
 )

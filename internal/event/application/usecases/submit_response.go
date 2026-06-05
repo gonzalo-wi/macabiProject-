@@ -16,15 +16,16 @@ type SubmitResponseInput struct {
 }
 
 type SubmitResponse struct {
-	repo eventports.Repository
+	eventRepo    eventports.EventRepository
+	responseRepo eventports.ResponseRepository
 }
 
-func NewSubmitResponse(repo eventports.Repository) *SubmitResponse {
-	return &SubmitResponse{repo: repo}
+func NewSubmitResponse(eventRepo eventports.EventRepository, responseRepo eventports.ResponseRepository) *SubmitResponse {
+	return &SubmitResponse{eventRepo: eventRepo, responseRepo: responseRepo}
 }
 
 func (uc *SubmitResponse) Execute(ctx context.Context, input SubmitResponseInput) error {
-	inst, err := uc.repo.FindInstanceByID(ctx, input.EventID)
+	inst, err := uc.eventRepo.FindInstanceByID(ctx, input.EventID)
 	if err != nil {
 		return err
 	}
@@ -34,5 +35,5 @@ func (uc *SubmitResponse) Execute(ctx context.Context, input SubmitResponseInput
 	if inst.ResponseDeadlineAt != nil && inst.ResponseDeadlineAt.Before(time.Now()) {
 		return eventdomain.ErrResponseDeadlinePassed
 	}
-	return uc.repo.SubmitResponse(ctx, input.EventID, input.UserID, input.ProjectID, input.Answers)
+	return uc.responseRepo.SubmitResponse(ctx, input.EventID, input.UserID, input.ProjectID, input.Answers)
 }

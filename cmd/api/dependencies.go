@@ -3,6 +3,7 @@ package main
 import (
 	eventusecases "macabi-back/internal/event/application/usecases"
 	eventhttp "macabi-back/internal/event/infrastructure/http"
+	eventmail "macabi-back/internal/event/infrastructure/mail"
 	eventpersistence "macabi-back/internal/event/infrastructure/persistence"
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesusecases "macabi-back/internal/expenses/application/usecases"
@@ -33,13 +34,14 @@ import (
 )
 
 type Dependencies struct {
-	AuthHandler     *userhttp.AuthHandler
-	UserHandler     *userhttp.UserHandler
-	ProjectHandler  *projecthttp.ProjectHandler
-	EventHandler    *eventhttp.Handler
-	StockHandler    *stockhttp.Handler
-	ExpensesHandler *expenseshttp.Handler
-	TokenPrv        userports.TokenProvider
+	AuthHandler        *userhttp.AuthHandler
+	UserHandler        *userhttp.UserHandler
+	ProjectHandler     *projecthttp.ProjectHandler
+	EventHandler       *eventhttp.Handler
+	StockHandler       *stockhttp.Handler
+	ExpensesHandler    *expenseshttp.Handler
+	TokenPrv           userports.TokenProvider
+	SendEventReminders *eventusecases.SendEventReminders
 }
 
 func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
@@ -125,6 +127,8 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	)
 
 	eventRepo := eventpersistence.NewRepositoryPG(db)
+	eventMailer := eventmail.NewBrevoEventMailer(cfg.BrevoAPIKey, cfg.BrevoEmailFrom, cfg.FrontendPublicURL)
+	sendEventRemindersUC := eventusecases.NewSendEventReminders(eventRepo, eventMailer)
 	createEventUC := eventusecases.NewCreateEvent(eventRepo)
 	listEventsUC := eventusecases.NewListEvents(eventRepo)
 	getEventDetailUC := eventusecases.NewGetEventDetail(eventRepo)
@@ -141,9 +145,9 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 	createOptionUC := eventusecases.NewCreateOption(eventRepo)
 	updateOptionUC := eventusecases.NewUpdateOption(eventRepo)
 	deleteOptionUC := eventusecases.NewDeleteOption(eventRepo)
-	submitResponseUC := eventusecases.NewSubmitResponse(eventRepo)
+	submitResponseUC := eventusecases.NewSubmitResponse(eventRepo, eventRepo)
 	getMyResponseUC := eventusecases.NewGetMyResponse(eventRepo)
-	listEventResponsesUC := eventusecases.NewListEventResponses(eventRepo)
+	listEventResponsesUC := eventusecases.NewListEventResponses(eventRepo, eventRepo)
 	getModuleResponseSummaryUC := eventusecases.NewGetModuleResponseSummary(eventRepo)
 	eventHandler := eventhttp.NewHandler(
 		createEventUC,
@@ -249,15 +253,19 @@ func BuildDependencies(db *gorm.DB, cfg *config.Config) *Dependencies {
 		expensesusecases.NewMarkExpenseNotificationRead(expenseRepo),
 		expensesusecases.NewMarkAllExpenseNotificationsRead(expenseRepo),
 		expensesusecases.NewUnreadExpenseNotificationCount(expenseRepo),
+		expensesusecases.NewCreateExpenseCategory(expenseRepo),
+		expensesusecases.NewListExpenseCategories(expenseRepo),
+		expensesusecases.NewDeleteExpenseCategory(expenseRepo),
 	)
 
 	return &Dependencies{
-		AuthHandler:     authHandler,
-		UserHandler:     userHandler,
-		ProjectHandler:  projectHandler,
-		EventHandler:    eventHandler,
-		StockHandler:    stockHandler,
-		ExpensesHandler: expensesHandler,
-		TokenPrv:        jwtProvider,
+		AuthHandler:        authHandler,
+		UserHandler:        userHandler,
+		ProjectHandler:     projectHandler,
+		EventHandler:       eventHandler,
+		StockHandler:       stockHandler,
+		ExpensesHandler:    expensesHandler,
+		TokenPrv:           jwtProvider,
+		SendEventReminders: sendEventRemindersUC,
 	}
 }

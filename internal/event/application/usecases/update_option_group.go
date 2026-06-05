@@ -17,10 +17,10 @@ type UpdateOptionGroupInput struct {
 }
 
 type UpdateOptionGroup struct {
-	repo eventports.Repository
+	repo eventports.OptionRepository
 }
 
-func NewUpdateOptionGroup(repo eventports.Repository) *UpdateOptionGroup {
+func NewUpdateOptionGroup(repo eventports.OptionRepository) *UpdateOptionGroup {
 	return &UpdateOptionGroup{repo: repo}
 }
 

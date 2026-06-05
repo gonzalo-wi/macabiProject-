@@ -7,10 +7,10 @@ import (
 )
 
 type DeleteEvent struct {
-	repo eventports.Repository
+	repo eventports.EventRepository
 }
 
-func NewDeleteEvent(repo eventports.Repository) *DeleteEvent {
+func NewDeleteEvent(repo eventports.EventRepository) *DeleteEvent {
 	return &DeleteEvent{repo: repo}
 }
 

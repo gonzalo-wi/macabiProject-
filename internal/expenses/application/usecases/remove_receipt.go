@@ -40,7 +40,7 @@ func (uc *RemoveReceipt) Execute(ctx context.Context, in RemoveReceiptInput) err
 		return err
 	}
 	owner := exp.SubmittedByUserID == in.ActorID
-	// Mismo criterio que editar el comprobante en UpdateExpense.
+
 	if !(isAdmin || coord || (owner && exp.Status == expensesdomain.StatusPending)) {
 		return expensesdomain.ErrForbidden
 	}

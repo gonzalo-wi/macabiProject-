@@ -18,10 +18,10 @@ type CreateEventInput struct {
 }
 
 type CreateEvent struct {
-	repo eventports.Repository
+	repo eventports.EventRepository
 }
 
-func NewCreateEvent(repo eventports.Repository) *CreateEvent {
+func NewCreateEvent(repo eventports.EventRepository) *CreateEvent {
 	return &CreateEvent{repo: repo}
 }
 

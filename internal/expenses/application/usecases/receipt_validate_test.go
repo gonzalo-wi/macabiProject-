@@ -25,7 +25,6 @@ func TestValidateReceiptBytes_rejectsExecutableDisguisedAsJPEG(t *testing.T) {
 }
 
 func TestValidateReceiptBytes_acceptsPNG(t *testing.T) {
-	// Minimal PNG signature + IHDR chunk start (not a valid image but enough magic)
 	body := []byte{0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d}
 	data, ct, err := ValidateReceiptBytes(bytes.NewReader(body), int64(len(body)), "image/png")
 	if err != nil {

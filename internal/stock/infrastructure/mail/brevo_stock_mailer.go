@@ -45,7 +45,6 @@ type brevoRecipient struct {
 	Email string `json:"email"`
 }
 
-// detailsCard renders the resource/quantity info card via the shared helper.
 func detailsCard(resourceName string, quantity int) string {
 	return email.DetailsCard([]email.DetailRow{
 		{Label: "Recurso", Value: resourceName},

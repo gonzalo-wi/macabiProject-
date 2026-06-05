@@ -26,6 +26,10 @@ func httpStatus(err error) int {
 		return http.StatusBadRequest
 	case errors.Is(err, expensesdomain.ErrReceiptStorageUnavailable):
 		return http.StatusServiceUnavailable
+	case errors.Is(err, expensesdomain.ErrCategoryNotFound):
+		return http.StatusNotFound
+	case errors.Is(err, expensesdomain.ErrCategoryInUse):
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}

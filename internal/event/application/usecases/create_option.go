@@ -16,10 +16,10 @@ type CreateOptionInput struct {
 }
 
 type CreateOption struct {
-	repo eventports.Repository
+	repo eventports.OptionRepository
 }
 
-func NewCreateOption(repo eventports.Repository) *CreateOption {
+func NewCreateOption(repo eventports.OptionRepository) *CreateOption {
 	return &CreateOption{repo: repo}
 }
 

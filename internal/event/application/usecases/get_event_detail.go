@@ -8,10 +8,10 @@ import (
 )
 
 type GetEventDetail struct {
-	repo eventports.Repository
+	repo eventports.EventRepository
 }
 
-func NewGetEventDetail(repo eventports.Repository) *GetEventDetail {
+func NewGetEventDetail(repo eventports.EventRepository) *GetEventDetail {
 	return &GetEventDetail{repo: repo}
 }
 

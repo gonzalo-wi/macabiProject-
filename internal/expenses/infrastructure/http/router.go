@@ -19,7 +19,7 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 		api.GET("/expenses/notifications", h.ListNotifications)
 		api.PATCH("/expenses/notifications/read-all", h.MarkAllNotificationsRead)
 		api.PATCH("/expenses/notifications/:id/read", h.MarkNotificationRead)
-		// Rutas estáticas de /expenses ANTES de la wildcard /:id (precedencia de Gin por orden).
+
 		api.GET("/expenses/analytics", userhttp.RequireRole(userdomain.RoleAdmin), h.Analytics)
 		api.GET("/expenses/:id", h.Get)
 		api.PATCH("/expenses/:id", h.Patch)
@@ -33,5 +33,9 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 
 		api.GET("/projects/:id/expenses/summary", h.SummaryByProject)
 		api.GET("/projects/:id/expenses", h.ListByProject)
+
+		api.POST("/expenses/categories", userhttp.RequireRole(userdomain.RoleAdmin), h.CreateCategory)
+		api.GET("/expenses/categories", h.ListCategories)
+		api.DELETE("/expenses/categories/:id", userhttp.RequireRole(userdomain.RoleAdmin), h.DeleteCategory)
 	}
 }

@@ -9,10 +9,10 @@ import (
 )
 
 type ListEvents struct {
-	repo eventports.Repository
+	repo eventports.EventRepository
 }
 
-func NewListEvents(repo eventports.Repository) *ListEvents {
+func NewListEvents(repo eventports.EventRepository) *ListEvents {
 	return &ListEvents{repo: repo}
 }
 

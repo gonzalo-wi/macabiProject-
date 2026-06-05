@@ -4,11 +4,12 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	sharederrors "macabi-back/internal/shared/errors"
 	userusecases "macabi-back/internal/user/application/usecases"
 	userdomain "macabi-back/internal/user/domain"
-
-	"github.com/gin-gonic/gin"
+	userdto "macabi-back/internal/user/infrastructure/http/dto"
 )
 
 const forgotPasswordSuccessMessage = "Si el email está registrado, te enviamos un enlace para restablecer la contraseña."
@@ -41,12 +42,11 @@ func (h *AuthHandler) RegisterDisabled(c *gin.Context) {
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req LoginRequest
+	var req userdto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-
 	output, err := h.loginUC.Execute(c.Request.Context(), userusecases.LoginInput{
 		Email:    req.Email,
 		Password: req.Password,
@@ -55,20 +55,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-
-	c.JSON(http.StatusOK, LoginResponse{
+	c.JSON(http.StatusOK, userdto.LoginResponse{
 		Token: output.Token,
-		User:  ToUserResponse(output.User),
+		User:  userdto.ToUserResponse(output.User),
 	})
 }
 
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
-	var req ForgotPasswordRequest
+	var req userdto.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-
 	err := h.requestPasswordUC.Execute(c.Request.Context(), req.Email)
 	if err != nil {
 		if errors.Is(err, userdomain.ErrInvalidEmail) {
@@ -78,35 +76,29 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{"message": forgotPasswordSuccessMessage})
 }
 
 func (h *AuthHandler) ConfirmPasswordReset(c *gin.Context) {
-	var req ConfirmPasswordResetRequest
+	var req userdto.ConfirmPasswordResetRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-
-	err := h.resetPasswordUC.Execute(c.Request.Context(), req.Token, req.NewPassword)
-	if err != nil {
+	if err := h.resetPasswordUC.Execute(c.Request.Context(), req.Token, req.NewPassword); err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "Contraseña actualizada. Ya podés iniciar sesión."})
 }
 
 func (h *AuthHandler) AcceptInvitation(c *gin.Context) {
-	var req AcceptInvitationRequest
+	var req userdto.AcceptInvitationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-
-	err := h.acceptInvUC.Execute(c.Request.Context(), req.Token, req.Password)
-	if err != nil {
+	if err := h.acceptInvUC.Execute(c.Request.Context(), req.Token, req.Password); err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}

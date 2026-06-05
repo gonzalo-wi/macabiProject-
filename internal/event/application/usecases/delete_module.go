@@ -7,10 +7,10 @@ import (
 )
 
 type DeleteModule struct {
-	repo eventports.Repository
+	repo eventports.ModuleRepository
 }
 
-func NewDeleteModule(repo eventports.Repository) *DeleteModule {
+func NewDeleteModule(repo eventports.ModuleRepository) *DeleteModule {
 	return &DeleteModule{repo: repo}
 }
 

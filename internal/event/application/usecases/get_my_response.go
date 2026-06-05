@@ -8,10 +8,10 @@ import (
 )
 
 type GetMyResponse struct {
-	repo eventports.Repository
+	repo eventports.ResponseRepository
 }
 
-func NewGetMyResponse(repo eventports.Repository) *GetMyResponse {
+func NewGetMyResponse(repo eventports.ResponseRepository) *GetMyResponse {
 	return &GetMyResponse{repo: repo}
 }
 

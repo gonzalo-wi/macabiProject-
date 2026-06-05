@@ -30,6 +30,7 @@ type UpdateExpenseInput struct {
 	ExpenseDate *time.Time
 	ReceiptPath *string
 	Currency    *string
+	CategoryID  *string // nil = no change, "" = remove, "uuid" = set
 }
 
 func (uc *UpdateExpense) Execute(ctx context.Context, input UpdateExpenseInput) (*expensesdomain.Expense, error) {
@@ -98,6 +99,14 @@ func (uc *UpdateExpense) Execute(ctx context.Context, input UpdateExpenseInput) 
 			return nil, expensesdomain.ErrInvalidReceiptPath
 		}
 		exp.ReceiptStoragePath = &p
+	}
+	if input.CategoryID != nil {
+		if strings.TrimSpace(*input.CategoryID) == "" {
+			exp.CategoryID = nil
+		} else {
+			id := strings.TrimSpace(*input.CategoryID)
+			exp.CategoryID = &id
+		}
 	}
 
 	if err := uc.repo.Update(ctx, exp); err != nil {

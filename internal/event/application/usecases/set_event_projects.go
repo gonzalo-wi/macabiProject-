@@ -7,10 +7,10 @@ import (
 )
 
 type SetEventProjects struct {
-	repo eventports.Repository
+	repo eventports.EventRepository
 }
 
-func NewSetEventProjects(repo eventports.Repository) *SetEventProjects {
+func NewSetEventProjects(repo eventports.EventRepository) *SetEventProjects {
 	return &SetEventProjects{repo: repo}
 }
 

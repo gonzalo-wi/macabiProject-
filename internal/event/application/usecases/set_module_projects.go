@@ -7,10 +7,10 @@ import (
 )
 
 type SetModuleProjects struct {
-	repo eventports.Repository
+	repo eventports.ModuleRepository
 }
 
-func NewSetModuleProjects(repo eventports.Repository) *SetModuleProjects {
+func NewSetModuleProjects(repo eventports.ModuleRepository) *SetModuleProjects {
 	return &SetModuleProjects{repo: repo}
 }
 

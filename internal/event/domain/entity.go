@@ -91,7 +91,6 @@ type EventResponseAnswer struct {
 	TextValue  *string
 }
 
-// EventResponseWithParticipant is an event response joined with basic user profile (admin listings).
 type EventResponseWithParticipant struct {
 	Response  EventResponse
 	UserName  string
@@ -99,7 +98,6 @@ type EventResponseWithParticipant struct {
 	Answers   []EventResponseAnswer
 }
 
-// EventDetail is the event aggregate for GET /events/:id
 type EventDetail struct {
 	Instance   EventInstance
 	ProjectIDs []string
@@ -123,8 +121,6 @@ type AnswerInput struct {
 	TextValue *string `json:"text_value"`
 }
 
-// ModuleResponseSummary aggregates who selected what inside a module.
-
 type SummaryParticipant struct {
 	UserID    string
 	UserName  string
@@ -144,8 +140,8 @@ type TextAnswerSummary struct {
 
 type GroupSummary struct {
 	Group       EventOptionGroup
-	Options     []OptionSummary     // for single/multi choice groups
-	TextAnswers []TextAnswerSummary // for text/number groups
+	Options     []OptionSummary
+	TextAnswers []TextAnswerSummary
 }
 
 type ModuleResponseSummary struct {

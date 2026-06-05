@@ -17,10 +17,10 @@ type CreateModuleInput struct {
 }
 
 type CreateModule struct {
-	repo eventports.Repository
+	repo eventports.ModuleRepository
 }
 
-func NewCreateModule(repo eventports.Repository) *CreateModule {
+func NewCreateModule(repo eventports.ModuleRepository) *CreateModule {
 	return &CreateModule{repo: repo}
 }
 

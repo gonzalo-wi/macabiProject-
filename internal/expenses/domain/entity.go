@@ -18,7 +18,6 @@ const (
 
 const DefaultCurrency = "ARS"
 
-// Expense is a project expense submitted by a member and optionally approved by a coordinator.
 type Expense struct {
 	ID                 string
 	ProjectID          string
@@ -28,6 +27,7 @@ type Expense struct {
 	Description        string
 	ExpenseDate        time.Time
 	Status             ExpenseStatus
+	CategoryID         *string
 	ReceiptStoragePath *string
 	ApprovedByUserID   *string
 	ApprovedAt         *time.Time
@@ -36,7 +36,12 @@ type Expense struct {
 	UpdatedAt          time.Time
 }
 
-// ExpenseNotification is an in-app notification sent to project coordinators.
+type ExpenseCategory struct {
+	ID        string
+	Name      string
+	CreatedAt time.Time
+}
+
 type ExpenseNotification struct {
 	ID        string
 	UserID    string
@@ -47,27 +52,25 @@ type ExpenseNotification struct {
 	CreatedAt time.Time
 }
 
-// ExpenseListItem is used for list responses with denormalized submitter name.
 type ExpenseListItem struct {
 	Expense
 	SubmitterName string
-	ProjectName   string // set when joining projects for global lists / display
+	ProjectName   string
+	CategoryName  string
 }
 
-// ExpenseDetailItem is used for the single-expense detail view with denormalized names.
 type ExpenseDetailItem struct {
 	Expense
 	SubmitterName string
 	ProjectName   string
-	ApproverName  string // name of the user who approved (empty if not approved)
+	ApproverName  string
+	CategoryName  string
 }
 
-// ReceiptKeyPrefix returns the storage prefix for an expense's receipt object (POSIX-style keys).
 func ReceiptKeyPrefix(projectID, expenseID string) string {
 	return fmt.Sprintf("projects/%s/expenses/%s", projectID, expenseID)
 }
 
-// ReceiptFileName returns the last path segment of a storage key (the uploaded file name).
 func ReceiptFileName(storagePath string) string {
 	storagePath = strings.TrimSpace(storagePath)
 	if storagePath == "" {
@@ -79,7 +82,6 @@ func ReceiptFileName(storagePath string) string {
 	return storagePath
 }
 
-// ValidateReceiptObjectKey ensures the object key lives under the expense prefix and has a safe filename.
 func ValidateReceiptObjectKey(projectID, expenseID, objectKey string) bool {
 	prefix := ReceiptKeyPrefix(projectID, expenseID) + "/"
 	if !strings.HasPrefix(objectKey, prefix) {
@@ -92,7 +94,6 @@ func ValidateReceiptObjectKey(projectID, expenseID, objectKey string) bool {
 	return true
 }
 
-// NewExpense validates input for a pending or auto-approved expense record before persistence.
 func NewExpense(projectID, submittedBy string, amount decimal.Decimal, description string, expenseDate time.Time) (*Expense, error) {
 	projectID = strings.TrimSpace(projectID)
 	submittedBy = strings.TrimSpace(submittedBy)

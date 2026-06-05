@@ -12,7 +12,6 @@ func withTx(ctx context.Context, tx *gorm.DB) context.Context {
 	return context.WithValue(ctx, txKey{}, tx)
 }
 
-// TxFromCtx returns the active transaction from ctx, or fallback if none.
 func TxFromCtx(ctx context.Context, fallback *gorm.DB) *gorm.DB {
 	if tx, ok := ctx.Value(txKey{}).(*gorm.DB); ok {
 		return tx

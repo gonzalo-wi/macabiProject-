@@ -17,10 +17,10 @@ type UpdateModuleInput struct {
 }
 
 type UpdateModule struct {
-	repo eventports.Repository
+	repo eventports.ModuleRepository
 }
 
-func NewUpdateModule(repo eventports.Repository) *UpdateModule {
+func NewUpdateModule(repo eventports.ModuleRepository) *UpdateModule {
 	return &UpdateModule{repo: repo}
 }
 

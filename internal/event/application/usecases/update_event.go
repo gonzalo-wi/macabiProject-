@@ -19,10 +19,10 @@ type UpdateEventInput struct {
 }
 
 type UpdateEvent struct {
-	repo eventports.Repository
+	repo eventports.EventRepository
 }
 
-func NewUpdateEvent(repo eventports.Repository) *UpdateEvent {
+func NewUpdateEvent(repo eventports.EventRepository) *UpdateEvent {
 	return &UpdateEvent{repo: repo}
 }
 

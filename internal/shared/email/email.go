@@ -1,5 +1,3 @@
-// Package email provides shared HTML building blocks for transactional emails
-// (branded layout, detail cards, CTA buttons) reused across modules.
 package email
 
 import (
@@ -8,11 +6,8 @@ import (
 	"strings"
 )
 
-// SenderDisplayName is the friendly name shown as the email sender.
 const SenderDisplayName = "Macabi Madrijim"
 
-// Layout wraps body HTML in a responsive branded shell.
-// headerColor is a CSS hex color, e.g. "#2563eb".
 func Layout(headerColor, title, body string) string {
 	return fmt.Sprintf(`<!DOCTYPE html>
 <html lang="es">
@@ -44,13 +39,11 @@ func Layout(headerColor, title, body string) string {
 </html>`, headerColor, html.EscapeString(title), body)
 }
 
-// DetailRow is a label/value pair for a DetailsCard.
 type DetailRow struct {
 	Label string
 	Value string
 }
 
-// DetailsCard renders a stacked label/value info card. Values are HTML-escaped.
 func DetailsCard(rows []DetailRow) string {
 	var b strings.Builder
 	b.WriteString(`<table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;margin:20px 0;">`)
@@ -68,7 +61,6 @@ func DetailsCard(rows []DetailRow) string {
 	return b.String()
 }
 
-// CTAButton renders a full-width call-to-action button with a copy-link fallback.
 func CTAButton(url, label, color string) string {
 	return fmt.Sprintf(`
 <table width="100%%" cellpadding="0" cellspacing="0" style="margin-top:24px;">

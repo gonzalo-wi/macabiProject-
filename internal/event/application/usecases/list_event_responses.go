@@ -9,16 +9,17 @@ import (
 )
 
 type ListEventResponses struct {
-	repo eventports.Repository
+	eventRepo    eventports.EventRepository
+	responseRepo eventports.ResponseRepository
 }
 
-func NewListEventResponses(repo eventports.Repository) *ListEventResponses {
-	return &ListEventResponses{repo: repo}
+func NewListEventResponses(eventRepo eventports.EventRepository, responseRepo eventports.ResponseRepository) *ListEventResponses {
+	return &ListEventResponses{eventRepo: eventRepo, responseRepo: responseRepo}
 }
 
 func (uc *ListEventResponses) Execute(ctx context.Context, eventID string, params pagination.Params) (pagination.Result[eventdomain.EventResponseWithParticipant], error) {
-	if _, err := uc.repo.FindInstanceByID(ctx, eventID); err != nil {
+	if _, err := uc.eventRepo.FindInstanceByID(ctx, eventID); err != nil {
 		return pagination.Result[eventdomain.EventResponseWithParticipant]{}, err
 	}
-	return uc.repo.ListResponsesForEvent(ctx, eventID, params)
+	return uc.responseRepo.ListResponsesForEvent(ctx, eventID, params)
 }

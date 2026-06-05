@@ -7,10 +7,10 @@ import (
 )
 
 type DeleteOptionGroup struct {
-	repo eventports.Repository
+	repo eventports.OptionRepository
 }
 
-func NewDeleteOptionGroup(repo eventports.Repository) *DeleteOptionGroup {
+func NewDeleteOptionGroup(repo eventports.OptionRepository) *DeleteOptionGroup {
 	return &DeleteOptionGroup{repo: repo}
 }
 

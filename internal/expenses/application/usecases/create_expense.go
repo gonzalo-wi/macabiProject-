@@ -14,11 +14,11 @@ import (
 )
 
 type CreateExpense struct {
-	repo          expensesports.ExpenseRepository
-	projects      expensesports.ProjectMembership
-	coordinators  expensesports.ProjectCoordinatorReader
-	emails        expensesports.UserEmailReader
-	mailer        expensesports.ExpenseMailer
+	repo         expensesports.ExpenseRepository
+	projects     expensesports.ProjectMembership
+	coordinators expensesports.ProjectCoordinatorReader
+	emails       expensesports.UserEmailReader
+	mailer       expensesports.ExpenseMailer
 }
 
 func NewCreateExpense(
@@ -43,8 +43,9 @@ type CreateExpenseInput struct {
 	UserRole    string
 	AmountStr   string
 	Description string
-	ExpenseDate time.Time // date-only semantics in handler
+	ExpenseDate time.Time
 	Currency    string
+	CategoryID  *string
 }
 
 func (uc *CreateExpense) Execute(ctx context.Context, input CreateExpenseInput) (*expensesdomain.Expense, error) {
@@ -77,10 +78,11 @@ func (uc *CreateExpense) Execute(ctx context.Context, input CreateExpenseInput) 
 	if strings.TrimSpace(input.Currency) != "" {
 		exp.Currency = strings.TrimSpace(input.Currency)
 	}
+	if input.CategoryID != nil && strings.TrimSpace(*input.CategoryID) != "" {
+		id := strings.TrimSpace(*input.CategoryID)
+		exp.CategoryID = &id
+	}
 
-	// Auto-aprobación alineada a Stock: solo el coordinador del proyecto
-	// auto-aprueba su propio gasto. Un admin (no coordinador) queda PENDIENTE
-	// para dejar rastro de quién lo aprueba.
 	coord, err := uc.projects.IsProjectCoordinator(ctx, pid, input.SubmittedBy)
 	if err != nil {
 		return nil, err

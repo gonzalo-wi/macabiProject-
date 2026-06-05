@@ -11,7 +11,6 @@ import (
 	"strings"
 )
 
-// SupabaseSigner calls Supabase Storage REST with the service role key (private bucket).
 type SupabaseSigner struct {
 	BaseURL string
 	APIKey  string
@@ -35,9 +34,6 @@ func encodeObjectPath(bucket, key string) string {
 	return strings.Join(out, "/")
 }
 
-// resolveStorageURL turns Supabase Storage API relative paths into absolute URLs.
-// Responses often return "/object/sign/..." or "/object/upload/sign/..." — they must be
-// prefixed with /storage/v1 on the project host (not the SPA origin).
 func (s *SupabaseSigner) resolveStorageURL(relativeOrAbsolute string) string {
 	relativeOrAbsolute = strings.TrimSpace(relativeOrAbsolute)
 	if relativeOrAbsolute == "" {
@@ -59,7 +55,6 @@ func (s *SupabaseSigner) resolveStorageURL(relativeOrAbsolute string) string {
 	return base + relativeOrAbsolute
 }
 
-// CreateSignedUploadURL returns a full URL suitable for PUT (see Supabase StorageFileApi.createSignedUploadUrl).
 func (s *SupabaseSigner) CreateSignedUploadURL(ctx context.Context, objectKey, contentType string) (string, error) {
 	_ = contentType // callers set Content-Type on PUT; signer path kept for symmetry with interface
 	path := encodeObjectPath(s.Bucket, objectKey)
@@ -102,7 +97,6 @@ func (s *SupabaseSigner) CreateSignedUploadURL(ctx context.Context, objectKey, c
 	return s.resolveStorageURL(relative), nil
 }
 
-// CreateSignedDownloadURL returns a time-limited read URL for a private object key.
 func (s *SupabaseSigner) CreateSignedDownloadURL(ctx context.Context, objectKey string, expiresSec int) (string, error) {
 	path := encodeObjectPath(s.Bucket, objectKey)
 	u := strings.TrimRight(s.BaseURL, "/") + "/storage/v1/object/sign/" + path
@@ -143,7 +137,6 @@ func (s *SupabaseSigner) CreateSignedDownloadURL(ctx context.Context, objectKey 
 	return s.resolveStorageURL(out), nil
 }
 
-// UploadObject stores bytes in the private bucket using the service role (no browser CORS).
 func (s *SupabaseSigner) UploadObject(ctx context.Context, objectKey, contentType string, body io.Reader) error {
 	path := encodeObjectPath(s.Bucket, objectKey)
 	u := strings.TrimRight(s.BaseURL, "/") + "/storage/v1/object/" + path
@@ -172,7 +165,6 @@ func (s *SupabaseSigner) UploadObject(ctx context.Context, objectKey, contentTyp
 	return nil
 }
 
-// DeleteObject removes a private object from the bucket (best-effort on expense delete).
 func (s *SupabaseSigner) DeleteObject(ctx context.Context, objectKey string) error {
 	path := encodeObjectPath(s.Bucket, objectKey)
 	u := strings.TrimRight(s.BaseURL, "/") + "/storage/v1/object/" + path

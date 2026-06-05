@@ -9,8 +9,6 @@ import (
 	expensesdomain "macabi-back/internal/expenses/domain"
 )
 
-// ValidateReceiptBytes reads up to MaxReceiptBytes+1, detects real MIME from magic bytes,
-// and rejects spoofed Content-Type headers. Returns canonical content-type for storage.
 func ValidateReceiptBytes(body io.Reader, declaredSize int64, declaredContentType string) ([]byte, string, error) {
 	if body == nil {
 		return nil, "", expensesdomain.ErrMissingRequiredField
@@ -41,7 +39,7 @@ func ValidateReceiptBytes(body io.Reader, declaredSize int64, declaredContentTyp
 
 	declared := normalizeDeclaredMIME(declaredContentType)
 	if declared != "" && declared != detected {
-		// Allow image/jpeg vs image/jpg style drift only when both map to same suffix
+
 		if receiptSuffix(declared) != receiptSuffix(detected) {
 			return nil, "", expensesdomain.ErrInvalidMimeType
 		}
@@ -69,7 +67,6 @@ func receiptSuffix(mime string) string {
 	return s
 }
 
-// detectReceiptMIME identifies allowed types from file header (not client Content-Type).
 func detectReceiptMIME(data []byte) string {
 	if len(data) >= 5 && string(data[:5]) == "%PDF-" {
 		return "application/pdf"
@@ -92,7 +89,6 @@ func detectReceiptMIME(data []byte) string {
 	return ""
 }
 
-// bytesReader is a tiny helper for tests and upload after validation.
 func bytesReader(data []byte) *bytes.Reader {
 	return bytes.NewReader(data)
 }

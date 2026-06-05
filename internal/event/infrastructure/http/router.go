@@ -20,7 +20,6 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 		admin := api.Group("")
 		admin.Use(userhttp.RequireRole(userdomain.RoleAdmin))
 		{
-			// Listado admin: mismo handler en dos rutas (alias evita confusiones con POST .../responses).
 			admin.GET("/event-instances/:id/participant-responses", h.ListEventResponsesForAdmin)
 			admin.GET("/event-instances/:id/responses", h.ListEventResponsesForAdmin)
 			admin.GET("/event-modules/:id/response-summary", h.GetModuleResponseSummary)

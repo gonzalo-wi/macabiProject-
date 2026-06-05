@@ -8,8 +8,6 @@ import (
 	"macabi-back/internal/shared/pagination"
 )
 
-// ListAllExpenses lists expenses across all projects with optional filters.
-// Authorization is enforced at the route (admin-only).
 type ListAllExpenses struct {
 	repo expensesports.ExpenseRepository
 }

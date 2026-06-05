@@ -17,7 +17,6 @@ type pushPayload struct {
 	ActionURL string `json:"url"`
 }
 
-// WebPushNotifier implements UserPushNotifier using the Web Push protocol (VAPID).
 type WebPushNotifier struct {
 	subRepo         stockports.PushSubscriptionRepository
 	vapidPublicKey  string
@@ -80,7 +79,6 @@ func (n *WebPushNotifier) Notify(ctx context.Context, userID string, title, body
 	}
 }
 
-// NoOpPushNotifier is used when VAPID keys are not configured.
 type NoOpPushNotifier struct{}
 
 func (NoOpPushNotifier) Notify(_ context.Context, _ string, _, _, _ string) {}

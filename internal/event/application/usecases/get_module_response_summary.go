@@ -8,10 +8,10 @@ import (
 )
 
 type GetModuleResponseSummary struct {
-	repo eventports.Repository
+	repo eventports.ResponseRepository
 }
 
-func NewGetModuleResponseSummary(repo eventports.Repository) *GetModuleResponseSummary {
+func NewGetModuleResponseSummary(repo eventports.ResponseRepository) *GetModuleResponseSummary {
 	return &GetModuleResponseSummary{repo: repo}
 }
 
