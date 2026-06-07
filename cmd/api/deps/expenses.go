@@ -74,5 +74,7 @@ func buildExpensesDeps(
 		expensesusecases.NewCreateExpenseCategory(expenseRepo),
 		expensesusecases.NewListExpenseCategories(expenseRepo),
 		expensesusecases.NewDeleteExpenseCategory(expenseRepo),
+		expensesusecases.NewGetProjectBudget(expenseRepo, membership),
+		expensesusecases.NewSetProjectBudget(expenseRepo),
 	)
 }

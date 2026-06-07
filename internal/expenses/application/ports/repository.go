@@ -27,6 +27,16 @@ type ExpenseQueryRepository interface {
 	ListMine(ctx context.Context, userID string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error)
 	SummaryByProject(ctx context.Context, projectID string, onlySubmittedBy *string, from, to *time.Time) (*ProjectExpenseSummary, error)
 	Analytics(ctx context.Context, from, to *time.Time, granularity string) (*ExpenseAnalyticsResult, error)
+
+	GetBudget(ctx context.Context, projectID string) (*decimal.Decimal, error)
+	SetBudget(ctx context.Context, projectID string, amount *decimal.Decimal) error
+}
+
+// ProjectBudgetStatus = presupuesto mensual del proyecto + lo aprobado en el mes actual.
+type ProjectBudgetStatus struct {
+	MonthlyAmount        *decimal.Decimal // nil = sin presupuesto definido
+	CurrentMonthApproved decimal.Decimal
+	Month                string // "YYYY-MM"
 }
 
 type ExpenseAnalyticsResult struct {
