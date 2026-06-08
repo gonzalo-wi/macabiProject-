@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	apideps "macabi-back/cmd/api/deps"
 	"macabi-back/internal/shared/config"
 	"macabi-back/internal/shared/database"
 	userpersistence "macabi-back/internal/user/infrastructure/persistence"
@@ -26,12 +27,12 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	deps := BuildDependencies(db, cfg)
+	d := apideps.Build(db, cfg)
 
-	scheduler := StartScheduler(deps.SendEventReminders)
+	scheduler := StartScheduler(d.SendEventReminders)
 	defer scheduler.Stop()
 
-	r := SetupRouter(deps)
+	r := SetupRouter(d)
 
 	log.Printf("Server starting on port %s", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {

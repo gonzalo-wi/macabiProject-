@@ -13,6 +13,7 @@ import (
 
 type ApproveExpense struct {
 	repo     expensesports.ExpenseRepository
+	notifs   expensesports.ExpenseNotificationRepository
 	projects expensesports.ProjectMembership
 	emails   expensesports.UserEmailReader
 	mailer   expensesports.ExpenseMailer
@@ -20,11 +21,12 @@ type ApproveExpense struct {
 
 func NewApproveExpense(
 	repo expensesports.ExpenseRepository,
+	notifs expensesports.ExpenseNotificationRepository,
 	projects expensesports.ProjectMembership,
 	emails expensesports.UserEmailReader,
 	mailer expensesports.ExpenseMailer,
 ) *ApproveExpense {
-	return &ApproveExpense{repo: repo, projects: projects, emails: emails, mailer: mailer}
+	return &ApproveExpense{repo: repo, notifs: notifs, projects: projects, emails: emails, mailer: mailer}
 }
 
 type MutationInput struct {
@@ -56,7 +58,7 @@ func (uc *ApproveExpense) Execute(ctx context.Context, in MutationInput) error {
 		return err
 	}
 
-	_ = uc.repo.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
+	_ = uc.notifs.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
 		UserID:    exp.SubmittedByUserID,
 		ExpenseID: exp.ID,
 		ProjectID: exp.ProjectID,
@@ -71,6 +73,7 @@ func (uc *ApproveExpense) Execute(ctx context.Context, in MutationInput) error {
 
 type RejectExpense struct {
 	repo     expensesports.ExpenseRepository
+	notifs   expensesports.ExpenseNotificationRepository
 	projects expensesports.ProjectMembership
 	emails   expensesports.UserEmailReader
 	mailer   expensesports.ExpenseMailer
@@ -78,11 +81,12 @@ type RejectExpense struct {
 
 func NewRejectExpense(
 	repo expensesports.ExpenseRepository,
+	notifs expensesports.ExpenseNotificationRepository,
 	projects expensesports.ProjectMembership,
 	emails expensesports.UserEmailReader,
 	mailer expensesports.ExpenseMailer,
 ) *RejectExpense {
-	return &RejectExpense{repo: repo, projects: projects, emails: emails, mailer: mailer}
+	return &RejectExpense{repo: repo, notifs: notifs, projects: projects, emails: emails, mailer: mailer}
 }
 
 type RejectExpenseInput struct {
@@ -116,7 +120,7 @@ func (uc *RejectExpense) Execute(ctx context.Context, in RejectExpenseInput) err
 	if r != "" {
 		rejectedMsg += fmt.Sprintf(" (motivo: %s)", r)
 	}
-	_ = uc.repo.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
+	_ = uc.notifs.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
 		UserID:    exp.SubmittedByUserID,
 		ExpenseID: exp.ID,
 		ProjectID: exp.ProjectID,

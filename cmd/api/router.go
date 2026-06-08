@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	apideps "macabi-back/cmd/api/deps"
 	eventhttp "macabi-back/internal/event/infrastructure/http"
 	expenseshttp "macabi-back/internal/expenses/infrastructure/http"
 	projecthttp "macabi-back/internal/project/infrastructure/http"
@@ -13,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(deps *Dependencies) *gin.Engine {
+func SetupRouter(d *apideps.Dependencies) *gin.Engine {
 	r := gin.New()
 	r.SetTrustedProxies(nil)
 
@@ -25,11 +26,11 @@ func SetupRouter(deps *Dependencies) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	userhttp.RegisterRoutes(r, deps.AuthHandler, deps.UserHandler, deps.TokenPrv)
-	projecthttp.RegisterRoutes(r, deps.ProjectHandler, deps.TokenPrv)
-	eventhttp.RegisterRoutes(r, deps.EventHandler, deps.TokenPrv)
-	stockhttp.RegisterRoutes(r, deps.StockHandler, deps.TokenPrv)
-	expenseshttp.RegisterRoutes(r, deps.ExpensesHandler, deps.TokenPrv)
+	userhttp.RegisterRoutes(r, d.AuthHandler, d.UserHandler, d.TokenPrv)
+	projecthttp.RegisterRoutes(r, d.ProjectHandler, d.TokenPrv)
+	eventhttp.RegisterRoutes(r, d.EventHandler, d.TokenPrv)
+	stockhttp.RegisterRoutes(r, d.StockHandler, d.TokenPrv)
+	expenseshttp.RegisterRoutes(r, d.ExpensesHandler, d.TokenPrv)
 
 	return r
 }

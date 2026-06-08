@@ -10,16 +10,18 @@ import (
 
 type DeleteExpense struct {
 	repo     expensesports.ExpenseRepository
+	notifs   expensesports.ExpenseNotificationRepository
 	projects expensesports.ProjectMembership
 	signer   expensesports.ReceiptSigner
 }
 
 func NewDeleteExpense(
 	repo expensesports.ExpenseRepository,
+	notifs expensesports.ExpenseNotificationRepository,
 	projects expensesports.ProjectMembership,
 	signer expensesports.ReceiptSigner,
 ) *DeleteExpense {
-	return &DeleteExpense{repo: repo, projects: projects, signer: signer}
+	return &DeleteExpense{repo: repo, notifs: notifs, projects: projects, signer: signer}
 }
 
 type DeleteExpenseInput struct {
@@ -55,6 +57,6 @@ func (uc *DeleteExpense) Execute(ctx context.Context, in DeleteExpenseInput) err
 	if exp.ReceiptStoragePath != nil && *exp.ReceiptStoragePath != "" && uc.signer != nil {
 		_ = uc.signer.DeleteObject(ctx, *exp.ReceiptStoragePath)
 	}
-	_ = uc.repo.DeleteNotificationsByExpenseID(ctx, exp.ID)
+	_ = uc.notifs.DeleteNotificationsByExpenseID(ctx, exp.ID)
 	return uc.repo.DeleteByID(ctx, exp.ID)
 }

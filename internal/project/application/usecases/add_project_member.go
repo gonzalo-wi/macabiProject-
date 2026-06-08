@@ -39,30 +39,3 @@ func (uc *AddProjectMember) Execute(ctx context.Context, in AddProjectMemberInpu
 	}
 	return m, nil
 }
-
-type RemoveProjectMember struct {
-	repo projectports.ProjectRepository
-}
-
-func NewRemoveProjectMember(repo projectports.ProjectRepository) *RemoveProjectMember {
-	return &RemoveProjectMember{repo: repo}
-}
-
-func (uc *RemoveProjectMember) Execute(ctx context.Context, projectID, userID string) error {
-	return uc.repo.RemoveMember(ctx, projectID, userID)
-}
-
-type ListProjectMembers struct {
-	repo projectports.ProjectRepository
-}
-
-func NewListProjectMembers(repo projectports.ProjectRepository) *ListProjectMembers {
-	return &ListProjectMembers{repo: repo}
-}
-
-func (uc *ListProjectMembers) Execute(ctx context.Context, projectID string) ([]projectdomain.ProjectMember, error) {
-	if _, err := uc.repo.FindByID(ctx, projectID); err != nil {
-		return nil, err
-	}
-	return uc.repo.ListMembers(ctx, projectID)
-}

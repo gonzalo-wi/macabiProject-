@@ -7,10 +7,10 @@ import (
 )
 
 type UnreadExpenseNotificationCount struct {
-	repo expensesports.ExpenseRepository
+	repo expensesports.ExpenseNotificationRepository
 }
 
-func NewUnreadExpenseNotificationCount(repo expensesports.ExpenseRepository) *UnreadExpenseNotificationCount {
+func NewUnreadExpenseNotificationCount(repo expensesports.ExpenseNotificationRepository) *UnreadExpenseNotificationCount {
 	return &UnreadExpenseNotificationCount{repo: repo}
 }
 

@@ -7,10 +7,10 @@ import (
 )
 
 type MarkExpenseNotificationRead struct {
-	repo expensesports.ExpenseRepository
+	repo expensesports.ExpenseNotificationRepository
 }
 
-func NewMarkExpenseNotificationRead(repo expensesports.ExpenseRepository) *MarkExpenseNotificationRead {
+func NewMarkExpenseNotificationRead(repo expensesports.ExpenseNotificationRepository) *MarkExpenseNotificationRead {
 	return &MarkExpenseNotificationRead{repo: repo}
 }
 
@@ -19,10 +19,10 @@ func (uc *MarkExpenseNotificationRead) Execute(ctx context.Context, notifID, use
 }
 
 type MarkAllExpenseNotificationsRead struct {
-	repo expensesports.ExpenseRepository
+	repo expensesports.ExpenseNotificationRepository
 }
 
-func NewMarkAllExpenseNotificationsRead(repo expensesports.ExpenseRepository) *MarkAllExpenseNotificationsRead {
+func NewMarkAllExpenseNotificationsRead(repo expensesports.ExpenseNotificationRepository) *MarkAllExpenseNotificationsRead {
 	return &MarkAllExpenseNotificationsRead{repo: repo}
 }
 

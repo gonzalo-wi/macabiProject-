@@ -25,13 +25,6 @@ type ExpenseRepository interface {
 	ListByProject(ctx context.Context, projectID string, onlySubmittedBy *string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error)
 	ListMine(ctx context.Context, userID string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error)
 	SummaryByProject(ctx context.Context, projectID string, onlySubmittedBy *string, from, to *time.Time) (*ProjectExpenseSummary, error)
-
-	SaveNotification(ctx context.Context, n *expensesdomain.ExpenseNotification) error
-	ListNotificationsByUser(ctx context.Context, userID string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseNotification], error)
-	MarkNotificationRead(ctx context.Context, id, userID string) error
-	MarkAllNotificationsRead(ctx context.Context, userID string) (int64, error)
-	UnreadNotificationCount(ctx context.Context, userID string) (int64, error)
-	DeleteNotificationsByExpenseID(ctx context.Context, expenseID string) error
 	FindProjectName(ctx context.Context, projectID string) (string, error)
 	Analytics(ctx context.Context, from, to *time.Time, granularity string) (*ExpenseAnalyticsResult, error)
 }

@@ -78,33 +78,40 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 		}
 		req.Status = stockdomain.RequestStatusApproved
 	} else {
-		coordinators, err := uc.projectReader.FindProjectCoordinators(ctx, input.ProjectID)
-		if err == nil {
-			msg := fmt.Sprintf("Nueva solicitud de reserva: %d unidad(es) de \"%s\"", input.Quantity, resource.Name)
-			for _, coordinatorID := range coordinators {
-				notif := &stockdomain.StockNotification{
-					UserID:    coordinatorID,
-					RequestID: req.ID,
-					Message:   msg,
-				}
-				_ = uc.repo.SaveNotification(ctx, notif)
-			}
-			if emails, err := uc.emailReader.FindEmailsByIDs(ctx, coordinators); err == nil {
-				addrs := make([]string, 0, len(emails))
-				for _, e := range emails {
-					addrs = append(addrs, e)
-				}
-				_ = uc.mailer.NotifyCoordinatorsNewRequest(ctx, addrs, resource.Name, input.Quantity, req.ID)
-			}
-			for _, coordinatorID := range coordinators {
-				uc.pushNotifier.Notify(ctx, coordinatorID,
-					"Nueva solicitud de reserva",
-					fmt.Sprintf("%d unidad(es) de \"%s\" esperan aprobación", input.Quantity, resource.Name),
-					fmt.Sprintf("/app/mis-proyectos/%s/recursos", input.ProjectID),
-				)
-			}
-		}
+		uc.notifyCoordinators(ctx, req.ID, input.ProjectID, resource.Name, input.Quantity)
 	}
 
 	return req, nil
+}
+
+func (uc *CreateRequest) notifyCoordinators(ctx context.Context, requestID, projectID, resourceName string, quantity int) {
+	coordinators, err := uc.projectReader.FindProjectCoordinators(ctx, projectID)
+	if err != nil {
+		return
+	}
+
+	msg := fmt.Sprintf("Nueva solicitud de reserva: %d unidad(es) de \"%s\"", quantity, resourceName)
+	for _, coordinatorID := range coordinators {
+		_ = uc.repo.SaveNotification(ctx, &stockdomain.StockNotification{
+			UserID:    coordinatorID,
+			RequestID: requestID,
+			Message:   msg,
+		})
+	}
+
+	if emails, err := uc.emailReader.FindEmailsByIDs(ctx, coordinators); err == nil {
+		addrs := make([]string, 0, len(emails))
+		for _, e := range emails {
+			addrs = append(addrs, e)
+		}
+		_ = uc.mailer.NotifyCoordinatorsNewRequest(ctx, addrs, resourceName, quantity, requestID)
+	}
+
+	for _, coordinatorID := range coordinators {
+		uc.pushNotifier.Notify(ctx, coordinatorID,
+			"Nueva solicitud de reserva",
+			fmt.Sprintf("%d unidad(es) de \"%s\" esperan aprobación", quantity, resourceName),
+			fmt.Sprintf("/app/mis-proyectos/%s/recursos", projectID),
+		)
+	}
 }

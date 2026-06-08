@@ -15,6 +15,7 @@ import (
 
 type CreateExpense struct {
 	repo         expensesports.ExpenseRepository
+	notifs       expensesports.ExpenseNotificationRepository
 	projects     expensesports.ProjectMembership
 	coordinators expensesports.ProjectCoordinatorReader
 	emails       expensesports.UserEmailReader
@@ -23,6 +24,7 @@ type CreateExpense struct {
 
 func NewCreateExpense(
 	repo expensesports.ExpenseRepository,
+	notifs expensesports.ExpenseNotificationRepository,
 	projects expensesports.ProjectMembership,
 	coordinators expensesports.ProjectCoordinatorReader,
 	emails expensesports.UserEmailReader,
@@ -30,6 +32,7 @@ func NewCreateExpense(
 ) *CreateExpense {
 	return &CreateExpense{
 		repo:         repo,
+		notifs:       notifs,
 		projects:     projects,
 		coordinators: coordinators,
 		emails:       emails,
@@ -122,7 +125,7 @@ func (uc *CreateExpense) notifyCoordinatorsNewExpense(ctx context.Context, exp *
 			ProjectID: exp.ProjectID,
 			Message:   msg,
 		}
-		_ = uc.repo.SaveNotification(ctx, notif)
+		_ = uc.notifs.SaveNotification(ctx, notif)
 	}
 
 	projectName, _ := uc.repo.FindProjectName(ctx, exp.ProjectID)
