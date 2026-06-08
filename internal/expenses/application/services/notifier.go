@@ -43,6 +43,18 @@ func (s *ExpenseNotificationService) NotifyCoordinatorsNewPendingExpense(ctx con
 		return
 	}
 
+	// No notificar al propio autor (un coordinador puede cargar su propio gasto).
+	filtered := make([]string, 0, len(coordinators))
+	for _, id := range coordinators {
+		if id != exp.SubmittedByUserID {
+			filtered = append(filtered, id)
+		}
+	}
+	if len(filtered) == 0 {
+		return
+	}
+	coordinators = filtered
+
 	amountLabel := formatAmount(exp)
 	msg := fmt.Sprintf("Nuevo gasto pendiente: %s — %s", amountLabel, exp.Description)
 

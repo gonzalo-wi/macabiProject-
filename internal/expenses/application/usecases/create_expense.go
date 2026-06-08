@@ -78,18 +78,8 @@ func (uc *CreateExpense) Execute(ctx context.Context, input CreateExpenseInput) 
 		exp.CategoryID = &id
 	}
 
-	coord, err := uc.projects.IsProjectCoordinator(ctx, pid, input.SubmittedBy)
-	if err != nil {
-		return nil, err
-	}
-	if coord {
-		now := time.Now().UTC()
-		u := input.SubmittedBy
-		exp.Status = expensesdomain.StatusApproved
-		exp.ApprovedByUserID = &u
-		exp.ApprovedAt = &now
-	}
-
+	// Los gastos siempre nacen PENDIENTE, incluso si quien los carga es
+	// coordinador del proyecto: la aprobación es siempre una acción manual.
 	if err := uc.repo.Save(ctx, exp); err != nil {
 		return nil, err
 	}

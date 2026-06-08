@@ -21,7 +21,7 @@ func (r *ExpenseRepositoryPG) GetBudget(ctx context.Context, projectID string) (
 	var m ProjectExpenseBudgetModel
 	err := r.db.WithContext(ctx).Where("project_id = ?", projectID).First(&m).Error
 	if err != nil {
-	 if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
