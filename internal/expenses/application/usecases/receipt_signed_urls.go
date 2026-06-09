@@ -7,6 +7,7 @@ import (
 
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesdomain "macabi-back/internal/expenses/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
@@ -22,10 +23,10 @@ const MaxReceiptBytes = 2 * 1024 * 1024
 type ReceiptUploadURL struct {
 	signer expensesports.ReceiptSigner
 	repo   expensesports.ExpenseRepository
-	proj   expensesports.ProjectMembership
+	proj   projectports.ProjectMembership
 }
 
-func NewReceiptUploadURL(signer expensesports.ReceiptSigner, repo expensesports.ExpenseRepository, proj expensesports.ProjectMembership) *ReceiptUploadURL {
+func NewReceiptUploadURL(signer expensesports.ReceiptSigner, repo expensesports.ExpenseRepository, proj projectports.ProjectMembership) *ReceiptUploadURL {
 	return &ReceiptUploadURL{signer: signer, repo: repo, proj: proj}
 }
 
@@ -93,10 +94,10 @@ func (uc *ReceiptUploadURL) Execute(ctx context.Context, in ReceiptUploadInput) 
 type ReceiptDownloadURL struct {
 	signer expensesports.ReceiptSigner
 	repo   expensesports.ExpenseRepository
-	proj   expensesports.ProjectMembership
+	proj   projectports.ProjectMembership
 }
 
-func NewReceiptDownloadURL(signer expensesports.ReceiptSigner, repo expensesports.ExpenseRepository, proj expensesports.ProjectMembership) *ReceiptDownloadURL {
+func NewReceiptDownloadURL(signer expensesports.ReceiptSigner, repo expensesports.ExpenseRepository, proj projectports.ProjectMembership) *ReceiptDownloadURL {
 	return &ReceiptDownloadURL{signer: signer, repo: repo, proj: proj}
 }
 
@@ -126,12 +127,16 @@ func (uc *ReceiptDownloadURL) Execute(ctx context.Context, in ReceiptDownloadInp
 		return nil, expensesdomain.ErrInvalidReceiptPath
 	}
 
-	getUC := GetExpense{repo: uc.repo, projects: uc.proj}
-	okExp, err := getUC.Execute(ctx, GetExpenseInput{ID: in.ExpenseID, UserID: in.UserID, UserRole: in.UserRole})
-	if err != nil {
-		return nil, err
+	isAdmin := userdomain.Role(in.UserRole) == userdomain.RoleAdmin
+	if !isAdmin && exp.SubmittedByUserID != in.UserID {
+		coord, err := uc.proj.IsProjectCoordinator(ctx, exp.ProjectID, in.UserID)
+		if err != nil {
+			return nil, err
+		}
+		if !coord {
+			return nil, expensesdomain.ErrForbidden
+		}
 	}
-	_ = okExp // GetExpense validates access
 
 	viewURL, err := uc.signer.CreateSignedDownloadURL(ctx, *exp.ReceiptStoragePath, 3600)
 	if err != nil {
@@ -144,10 +149,10 @@ func (uc *ReceiptDownloadURL) Execute(ctx context.Context, in ReceiptDownloadInp
 type ReceiptUploadFile struct {
 	signer expensesports.ReceiptSigner
 	repo   expensesports.ExpenseRepository
-	proj   expensesports.ProjectMembership
+	proj   projectports.ProjectMembership
 }
 
-func NewReceiptUploadFile(signer expensesports.ReceiptSigner, repo expensesports.ExpenseRepository, proj expensesports.ProjectMembership) *ReceiptUploadFile {
+func NewReceiptUploadFile(signer expensesports.ReceiptSigner, repo expensesports.ExpenseRepository, proj projectports.ProjectMembership) *ReceiptUploadFile {
 	return &ReceiptUploadFile{signer: signer, repo: repo, proj: proj}
 }
 

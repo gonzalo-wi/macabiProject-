@@ -2,31 +2,33 @@ package expensesusecases
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesdomain "macabi-back/internal/expenses/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
+// SubmitterNotifier notifies the expense submitter of approval or rejection.
+type SubmitterNotifier interface {
+	NotifySubmitterApproved(ctx context.Context, exp *expensesdomain.Expense)
+	NotifySubmitterRejected(ctx context.Context, exp *expensesdomain.Expense, reason string)
+}
+
 type ApproveExpense struct {
 	repo     expensesports.ExpenseRepository
-	notifs   expensesports.ExpenseNotificationRepository
-	projects expensesports.ProjectMembership
-	emails   expensesports.UserEmailReader
-	mailer   expensesports.ExpenseMailer
+	projects projectports.ProjectMembership
+	notifier SubmitterNotifier
 }
 
 func NewApproveExpense(
 	repo expensesports.ExpenseRepository,
-	notifs expensesports.ExpenseNotificationRepository,
-	projects expensesports.ProjectMembership,
-	emails expensesports.UserEmailReader,
-	mailer expensesports.ExpenseMailer,
+	projects projectports.ProjectMembership,
+	notifier SubmitterNotifier,
 ) *ApproveExpense {
-	return &ApproveExpense{repo: repo, notifs: notifs, projects: projects, emails: emails, mailer: mailer}
+	return &ApproveExpense{repo: repo, projects: projects, notifier: notifier}
 }
 
 type MutationInput struct {
@@ -58,35 +60,22 @@ func (uc *ApproveExpense) Execute(ctx context.Context, in MutationInput) error {
 		return err
 	}
 
-	_ = uc.notifs.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
-		UserID:    exp.SubmittedByUserID,
-		ExpenseID: exp.ID,
-		ProjectID: exp.ProjectID,
-		Message:   fmt.Sprintf("Tu gasto fue aprobado: %s — %s", formatExpenseAmount(exp), exp.Description),
-	})
-
-	if email, err := uc.emails.FindEmailByID(ctx, exp.SubmittedByUserID); err == nil {
-		_ = uc.mailer.NotifySubmitterApproved(ctx, email, formatExpenseAmount(exp), exp.Description, exp.ID)
-	}
+	uc.notifier.NotifySubmitterApproved(ctx, exp)
 	return nil
 }
 
 type RejectExpense struct {
 	repo     expensesports.ExpenseRepository
-	notifs   expensesports.ExpenseNotificationRepository
-	projects expensesports.ProjectMembership
-	emails   expensesports.UserEmailReader
-	mailer   expensesports.ExpenseMailer
+	projects projectports.ProjectMembership
+	notifier SubmitterNotifier
 }
 
 func NewRejectExpense(
 	repo expensesports.ExpenseRepository,
-	notifs expensesports.ExpenseNotificationRepository,
-	projects expensesports.ProjectMembership,
-	emails expensesports.UserEmailReader,
-	mailer expensesports.ExpenseMailer,
+	projects projectports.ProjectMembership,
+	notifier SubmitterNotifier,
 ) *RejectExpense {
-	return &RejectExpense{repo: repo, notifs: notifs, projects: projects, emails: emails, mailer: mailer}
+	return &RejectExpense{repo: repo, projects: projects, notifier: notifier}
 }
 
 type RejectExpenseInput struct {
@@ -116,24 +105,11 @@ func (uc *RejectExpense) Execute(ctx context.Context, in RejectExpenseInput) err
 		return err
 	}
 
-	rejectedMsg := fmt.Sprintf("Tu gasto fue rechazado: %s — %s", formatExpenseAmount(exp), exp.Description)
-	if r != "" {
-		rejectedMsg += fmt.Sprintf(" (motivo: %s)", r)
-	}
-	_ = uc.notifs.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
-		UserID:    exp.SubmittedByUserID,
-		ExpenseID: exp.ID,
-		ProjectID: exp.ProjectID,
-		Message:   rejectedMsg,
-	})
-
-	if email, err := uc.emails.FindEmailByID(ctx, exp.SubmittedByUserID); err == nil {
-		_ = uc.mailer.NotifySubmitterRejected(ctx, email, formatExpenseAmount(exp), exp.Description, r, exp.ID)
-	}
+	uc.notifier.NotifySubmitterRejected(ctx, exp, r)
 	return nil
 }
 
-func canApproveOrRejectExpense(ctx context.Context, projects expensesports.ProjectMembership, projectID, actorID, role string) (bool, error) {
+func canApproveOrRejectExpense(ctx context.Context, projects projectports.ProjectMembership, projectID, actorID, role string) (bool, error) {
 	if userdomain.Role(role) == userdomain.RoleAdmin {
 		return true, nil
 	}

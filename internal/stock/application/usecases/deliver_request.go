@@ -5,6 +5,7 @@ import (
 
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
@@ -16,10 +17,10 @@ type DeliverRequestInput struct {
 
 type DeliverRequest struct {
 	repo          stockports.StockRepository
-	projectReader stockports.ProjectMemberReader
+	projectReader projectports.ProjectMembership
 }
 
-func NewDeliverRequest(repo stockports.StockRepository, projectReader stockports.ProjectMemberReader) *DeliverRequest {
+func NewDeliverRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership) *DeliverRequest {
 	return &DeliverRequest{repo: repo, projectReader: projectReader}
 }
 

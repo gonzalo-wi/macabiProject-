@@ -9,10 +9,10 @@ import (
 )
 
 type ListAllExpenses struct {
-	repo expensesports.ExpenseRepository
+	repo expensesports.ExpenseQueryRepository
 }
 
-func NewListAllExpenses(repo expensesports.ExpenseRepository) *ListAllExpenses {
+func NewListAllExpenses(repo expensesports.ExpenseQueryRepository) *ListAllExpenses {
 	return &ListAllExpenses{repo: repo}
 }
 

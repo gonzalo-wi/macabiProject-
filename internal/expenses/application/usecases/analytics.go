@@ -8,10 +8,10 @@ import (
 )
 
 type ExpenseAnalytics struct {
-	repo expensesports.ExpenseRepository
+	repo expensesports.ExpenseQueryRepository
 }
 
-func NewExpenseAnalytics(repo expensesports.ExpenseRepository) *ExpenseAnalytics {
+func NewExpenseAnalytics(repo expensesports.ExpenseQueryRepository) *ExpenseAnalytics {
 	return &ExpenseAnalytics{repo: repo}
 }
 

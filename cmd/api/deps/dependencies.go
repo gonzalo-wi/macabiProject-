@@ -29,7 +29,9 @@ func Build(db *gorm.DB, cfg *config.Config) *Dependencies {
 	projectHandler := buildProjectDeps(db)
 	eventHandler, sendReminders := buildEventDeps(db, cfg)
 	stockHandler, stockRepo := buildStockDeps(db, cfg)
-	expensesHandler := buildExpensesDeps(db, cfg, stockRepo)
+	// stockRepo satisfies ProjectMembership, ProjectCoordinatorReader and UserEmailReader
+	// because StockRepositoryPG implements all three interfaces.
+	expensesHandler := buildExpensesDeps(db, cfg, stockRepo, stockRepo, stockRepo)
 
 	return &Dependencies{
 		AuthHandler:        authHandler,

@@ -5,15 +5,16 @@ import (
 
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
 type GetRequestDetail struct {
 	repo     stockports.StockRepository
-	projects stockports.ProjectMemberReader
+	projects projectports.ProjectMembership
 }
 
-func NewGetRequestDetail(repo stockports.StockRepository, projects stockports.ProjectMemberReader) *GetRequestDetail {
+func NewGetRequestDetail(repo stockports.StockRepository, projects projectports.ProjectMembership) *GetRequestDetail {
 	return &GetRequestDetail{repo: repo, projects: projects}
 }
 

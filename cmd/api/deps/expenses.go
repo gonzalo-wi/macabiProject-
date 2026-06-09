@@ -4,18 +4,26 @@ import (
 	"strings"
 
 	expensesports "macabi-back/internal/expenses/application/ports"
+	expensesservices "macabi-back/internal/expenses/application/services"
 	expensesusecases "macabi-back/internal/expenses/application/usecases"
 	expenseshttp "macabi-back/internal/expenses/infrastructure/http"
 	expensesmail "macabi-back/internal/expenses/infrastructure/mail"
 	expensespersistence "macabi-back/internal/expenses/infrastructure/persistence"
 	expensesstorage "macabi-back/internal/expenses/infrastructure/storage"
+	projectports "macabi-back/internal/project/application/ports"
 	"macabi-back/internal/shared/config"
-	stockpersistence "macabi-back/internal/stock/infrastructure/persistence"
+	userports "macabi-back/internal/user/application/ports"
 
 	"gorm.io/gorm"
 )
 
-func buildExpensesDeps(db *gorm.DB, cfg *config.Config, stockRepo *stockpersistence.StockRepositoryPG) *expenseshttp.Handler {
+func buildExpensesDeps(
+	db *gorm.DB,
+	cfg *config.Config,
+	membership projectports.ProjectMembership,
+	coordinatorReader projectports.ProjectCoordinatorReader,
+	emailReader userports.UserEmailReader,
+) *expenseshttp.Handler {
 	expenseRepo := expensespersistence.NewExpenseRepositoryPG(db)
 	if err := expensespersistence.RunMigrations(db); err != nil {
 		panic("expenses migrations failed: " + err.Error())
@@ -37,25 +45,27 @@ func buildExpensesDeps(db *gorm.DB, cfg *config.Config, stockRepo *stockpersiste
 		expenseMailer = expensesmail.NewNoOpExpenseMailer()
 	}
 
-	createExpenseUC := expensesusecases.NewCreateExpense(expenseRepo, expenseRepo, stockRepo, stockRepo, stockRepo, expenseMailer)
-	receiptUploadFileUC := expensesusecases.NewReceiptUploadFile(receiptSigner, expenseRepo, stockRepo)
+	notifier := expensesservices.NewExpenseNotificationService(expenseRepo, coordinatorReader, emailReader, expenseMailer, expenseRepo)
+
+	createExpenseUC := expensesusecases.NewCreateExpense(expenseRepo, membership, notifier)
+	receiptUploadFileUC := expensesusecases.NewReceiptUploadFile(receiptSigner, expenseRepo, membership)
 
 	return expenseshttp.NewHandler(
 		createExpenseUC,
 		expensesusecases.NewCreateExpenseWithReceipt(createExpenseUC, receiptUploadFileUC, expenseRepo),
-		expensesusecases.NewGetExpense(expenseRepo, stockRepo),
-		expensesusecases.NewListProjectExpenses(expenseRepo, stockRepo),
+		expensesusecases.NewGetExpense(expenseRepo, membership),
+		expensesusecases.NewListProjectExpenses(expenseRepo, membership),
 		expensesusecases.NewListAllExpenses(expenseRepo),
 		expensesusecases.NewListMyExpenses(expenseRepo),
-		expensesusecases.NewUpdateExpense(expenseRepo, stockRepo),
-		expensesusecases.NewApproveExpense(expenseRepo, expenseRepo, stockRepo, stockRepo, expenseMailer),
-		expensesusecases.NewRejectExpense(expenseRepo, expenseRepo, stockRepo, stockRepo, expenseMailer),
-		expensesusecases.NewDeleteExpense(expenseRepo, expenseRepo, stockRepo, receiptSigner),
-		expensesusecases.NewProjectExpenseSummaryUC(expenseRepo, stockRepo),
-		expensesusecases.NewReceiptUploadURL(receiptSigner, expenseRepo, stockRepo),
+		expensesusecases.NewUpdateExpense(expenseRepo, membership),
+		expensesusecases.NewApproveExpense(expenseRepo, membership, notifier),
+		expensesusecases.NewRejectExpense(expenseRepo, membership, notifier),
+		expensesusecases.NewDeleteExpense(expenseRepo, expenseRepo, membership, receiptSigner),
+		expensesusecases.NewProjectExpenseSummaryUC(expenseRepo, membership),
+		expensesusecases.NewReceiptUploadURL(receiptSigner, expenseRepo, membership),
 		receiptUploadFileUC,
-		expensesusecases.NewReceiptDownloadURL(receiptSigner, expenseRepo, stockRepo),
-		expensesusecases.NewRemoveReceipt(expenseRepo, stockRepo, receiptSigner),
+		expensesusecases.NewReceiptDownloadURL(receiptSigner, expenseRepo, membership),
+		expensesusecases.NewRemoveReceipt(expenseRepo, membership, receiptSigner),
 		expensesusecases.NewExpenseAnalytics(expenseRepo),
 		expensesusecases.NewListExpenseNotifications(expenseRepo),
 		expensesusecases.NewMarkExpenseNotificationRead(expenseRepo),

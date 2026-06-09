@@ -7,6 +7,8 @@ import (
 
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
+	projectports "macabi-back/internal/project/application/ports"
+	userports "macabi-back/internal/user/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
@@ -23,13 +25,13 @@ type CreateRequestInput struct {
 
 type CreateRequest struct {
 	repo          stockports.StockRepository
-	projectReader stockports.ProjectMemberReader
-	emailReader   stockports.UserEmailReader
+	projectReader projectports.ProjectMemberReader
+	emailReader   userports.UserEmailReader
 	mailer        stockports.StockMailer
 	pushNotifier  stockports.UserPushNotifier
 }
 
-func NewCreateRequest(repo stockports.StockRepository, projectReader stockports.ProjectMemberReader, emailReader stockports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *CreateRequest {
+func NewCreateRequest(repo stockports.StockRepository, projectReader projectports.ProjectMemberReader, emailReader userports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *CreateRequest {
 	return &CreateRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer, pushNotifier: pushNotifier}
 }
 

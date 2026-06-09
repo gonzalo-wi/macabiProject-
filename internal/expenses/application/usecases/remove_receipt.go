@@ -5,18 +5,19 @@ import (
 
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesdomain "macabi-back/internal/expenses/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
 type RemoveReceipt struct {
 	repo     expensesports.ExpenseRepository
-	projects expensesports.ProjectMembership
+	projects projectports.ProjectMembership
 	signer   expensesports.ReceiptSigner
 }
 
 func NewRemoveReceipt(
 	repo expensesports.ExpenseRepository,
-	projects expensesports.ProjectMembership,
+	projects projectports.ProjectMembership,
 	signer expensesports.ReceiptSigner,
 ) *RemoveReceipt {
 	return &RemoveReceipt{repo: repo, projects: projects, signer: signer}

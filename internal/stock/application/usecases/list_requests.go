@@ -6,15 +6,16 @@ import (
 	"macabi-back/internal/shared/pagination"
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
 type ListRequests struct {
 	repo     stockports.StockRepository
-	projects stockports.ProjectMemberReader
+	projects projectports.ProjectMembership
 }
 
-func NewListRequests(repo stockports.StockRepository, projects stockports.ProjectMemberReader) *ListRequests {
+func NewListRequests(repo stockports.StockRepository, projects projectports.ProjectMembership) *ListRequests {
 	return &ListRequests{repo: repo, projects: projects}
 }
 

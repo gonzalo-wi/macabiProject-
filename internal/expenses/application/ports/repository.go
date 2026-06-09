@@ -10,22 +10,22 @@ import (
 	"macabi-back/internal/shared/pagination"
 )
 
-type ProjectMembership interface {
-	IsProjectCoordinator(ctx context.Context, projectID, userID string) (bool, error)
-	IsProjectMember(ctx context.Context, projectID, userID string) (bool, error)
-}
-
+// ExpenseRepository covers transactional operations and reads needed by write use cases.
 type ExpenseRepository interface {
 	Save(ctx context.Context, e *expensesdomain.Expense) error
 	Update(ctx context.Context, e *expensesdomain.Expense) error
+	DeleteByID(ctx context.Context, id string) error
 	FindByID(ctx context.Context, id string) (*expensesdomain.Expense, error)
+	FindProjectName(ctx context.Context, projectID string) (string, error)
+}
+
+// ExpenseQueryRepository covers read-only queries and analytics.
+type ExpenseQueryRepository interface {
 	FindDetailByID(ctx context.Context, id string) (*expensesdomain.ExpenseDetailItem, error)
 	ListAll(ctx context.Context, filter ExpenseListFilter, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error)
-	DeleteByID(ctx context.Context, id string) error
 	ListByProject(ctx context.Context, projectID string, onlySubmittedBy *string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error)
 	ListMine(ctx context.Context, userID string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error)
 	SummaryByProject(ctx context.Context, projectID string, onlySubmittedBy *string, from, to *time.Time) (*ProjectExpenseSummary, error)
-	FindProjectName(ctx context.Context, projectID string) (string, error)
 	Analytics(ctx context.Context, from, to *time.Time, granularity string) (*ExpenseAnalyticsResult, error)
 }
 
@@ -68,4 +68,3 @@ type MonthlyTotal struct {
 	MonthYYYYMM string `json:"month"`
 	Total       decimal.Decimal
 }
-

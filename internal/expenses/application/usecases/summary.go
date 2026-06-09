@@ -6,15 +6,16 @@ import (
 
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesdomain "macabi-back/internal/expenses/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
 type ProjectExpenseSummaryUC struct {
-	repo     expensesports.ExpenseRepository
-	projects expensesports.ProjectMembership
+	repo     expensesports.ExpenseQueryRepository
+	projects projectports.ProjectMembership
 }
 
-func NewProjectExpenseSummaryUC(repo expensesports.ExpenseRepository, projects expensesports.ProjectMembership) *ProjectExpenseSummaryUC {
+func NewProjectExpenseSummaryUC(repo expensesports.ExpenseQueryRepository, projects projectports.ProjectMembership) *ProjectExpenseSummaryUC {
 	return &ProjectExpenseSummaryUC{repo: repo, projects: projects}
 }
 

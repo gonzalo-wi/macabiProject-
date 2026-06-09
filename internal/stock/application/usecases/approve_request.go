@@ -5,6 +5,8 @@ import (
 
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
+	projectports "macabi-back/internal/project/application/ports"
+	userports "macabi-back/internal/user/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
@@ -16,13 +18,13 @@ type ApproveRequestInput struct {
 
 type ApproveRequest struct {
 	repo          stockports.StockRepository
-	projectReader stockports.ProjectMemberReader
-	emailReader   stockports.UserEmailReader
+	projectReader projectports.ProjectMembership
+	emailReader   userports.UserEmailReader
 	mailer        stockports.StockMailer
 	pushNotifier  stockports.UserPushNotifier
 }
 
-func NewApproveRequest(repo stockports.StockRepository, projectReader stockports.ProjectMemberReader, emailReader stockports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *ApproveRequest {
+func NewApproveRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership, emailReader userports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *ApproveRequest {
 	return &ApproveRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer, pushNotifier: pushNotifier}
 }
 

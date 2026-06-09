@@ -9,15 +9,16 @@ import (
 
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesdomain "macabi-back/internal/expenses/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
 type UpdateExpense struct {
 	repo     expensesports.ExpenseRepository
-	projects expensesports.ProjectMembership
+	projects projectports.ProjectMembership
 }
 
-func NewUpdateExpense(repo expensesports.ExpenseRepository, projects expensesports.ProjectMembership) *UpdateExpense {
+func NewUpdateExpense(repo expensesports.ExpenseRepository, projects projectports.ProjectMembership) *UpdateExpense {
 	return &UpdateExpense{repo: repo, projects: projects}
 }
 

@@ -11,6 +11,7 @@ type ExpenseRepositoryPG struct {
 }
 
 var _ expensesports.ExpenseRepository = (*ExpenseRepositoryPG)(nil)
+var _ expensesports.ExpenseQueryRepository = (*ExpenseRepositoryPG)(nil)
 var _ expensesports.ExpenseNotificationRepository = (*ExpenseRepositoryPG)(nil)
 var _ expensesports.CategoryRepository = (*ExpenseRepositoryPG)(nil)
 

@@ -5,20 +5,21 @@ import (
 
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesdomain "macabi-back/internal/expenses/domain"
+	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
 type DeleteExpense struct {
 	repo     expensesports.ExpenseRepository
 	notifs   expensesports.ExpenseNotificationRepository
-	projects expensesports.ProjectMembership
+	projects projectports.ProjectMembership
 	signer   expensesports.ReceiptSigner
 }
 
 func NewDeleteExpense(
 	repo expensesports.ExpenseRepository,
 	notifs expensesports.ExpenseNotificationRepository,
-	projects expensesports.ProjectMembership,
+	projects projectports.ProjectMembership,
 	signer expensesports.ReceiptSigner,
 ) *DeleteExpense {
 	return &DeleteExpense{repo: repo, notifs: notifs, projects: projects, signer: signer}
