@@ -12,6 +12,7 @@ import (
 	expensesstorage "macabi-back/internal/expenses/infrastructure/storage"
 	projectports "macabi-back/internal/project/application/ports"
 	"macabi-back/internal/shared/config"
+	"macabi-back/internal/shared/notifications"
 	userports "macabi-back/internal/user/application/ports"
 
 	"gorm.io/gorm"
@@ -23,6 +24,7 @@ func buildExpensesDeps(
 	membership projectports.ProjectMembership,
 	coordinatorReader projectports.ProjectCoordinatorReader,
 	emailReader userports.UserEmailReader,
+	push notifications.PushNotifier,
 ) *expenseshttp.Handler {
 	expenseRepo := expensespersistence.NewExpenseRepositoryPG(db)
 	if err := expensespersistence.RunMigrations(db); err != nil {
@@ -45,7 +47,7 @@ func buildExpensesDeps(
 		expenseMailer = expensesmail.NewNoOpExpenseMailer()
 	}
 
-	notifier := expensesservices.NewExpenseNotificationService(expenseRepo, coordinatorReader, emailReader, expenseMailer, expenseRepo)
+	notifier := expensesservices.NewExpenseNotificationService(expenseRepo, coordinatorReader, emailReader, expenseMailer, expenseRepo, push)
 
 	createExpenseUC := expensesusecases.NewCreateExpense(expenseRepo, membership, notifier)
 	receiptUploadFileUC := expensesusecases.NewReceiptUploadFile(receiptSigner, expenseRepo, membership)

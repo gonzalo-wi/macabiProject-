@@ -6,7 +6,6 @@ import (
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
 	projectports "macabi-back/internal/project/application/ports"
-	userports "macabi-back/internal/user/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
@@ -19,13 +18,15 @@ type RejectRequestInput struct {
 type RejectRequest struct {
 	repo          stockports.StockRepository
 	projectReader projectports.ProjectMembership
-	emailReader   userports.UserEmailReader
-	mailer        stockports.StockMailer
-	pushNotifier  stockports.UserPushNotifier
+	notifier      stockports.UserNotifier
 }
 
-func NewRejectRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership, emailReader userports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *RejectRequest {
-	return &RejectRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer, pushNotifier: pushNotifier}
+func NewRejectRequest(
+	repo stockports.StockRepository,
+	projectReader projectports.ProjectMembership,
+	notifier stockports.UserNotifier,
+) *RejectRequest {
+	return &RejectRequest{repo: repo, projectReader: projectReader, notifier: notifier}
 }
 
 func (uc *RejectRequest) Execute(ctx context.Context, input RejectRequestInput) error {
@@ -50,15 +51,9 @@ func (uc *RejectRequest) Execute(ctx context.Context, input RejectRequestInput) 
 	if err := uc.repo.UpdateRequestStatus(ctx, input.RequestID, stockdomain.RequestStatusRejected); err != nil {
 		return err
 	}
+
 	if resource, err := uc.repo.FindResourceByID(ctx, req.ResourceID); err == nil {
-		if email, err := uc.emailReader.FindEmailByID(ctx, req.RequestedByID); err == nil {
-			_ = uc.mailer.NotifyRequesterRejected(ctx, email, resource.Name, req.Quantity)
-		}
-		uc.pushNotifier.Notify(ctx, req.RequestedByID,
-			"Solicitud rechazada",
-			resource.Name+" — tu reserva fue rechazada",
-			"/stock/requests/my",
-		)
+		uc.notifier.NotifyRequesterRejected(ctx, input.RequestID, req.RequestedByID, resource.Name, req.Quantity)
 	}
 	return nil
 }

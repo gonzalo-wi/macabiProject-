@@ -23,6 +23,8 @@ func httpStatus(err error) int {
 	case errors.Is(err, eventdomain.ErrEventNotOpen),
 		errors.Is(err, eventdomain.ErrResponseDeadlinePassed):
 		return http.StatusForbidden
+	case errors.Is(err, eventdomain.ErrNotificationNotFound):
+		return http.StatusNotFound
 	default:
 		return http.StatusInternalServerError
 	}

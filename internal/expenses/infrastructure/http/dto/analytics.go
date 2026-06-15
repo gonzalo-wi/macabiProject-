@@ -5,7 +5,13 @@ import (
 )
 
 type SummaryResponse struct {
-	TotalApproved string                `json:"total_approved"`
+	TotalApproved string                  `json:"total_approved"`
+	TotalCount    int64                   `json:"total_count"`
+	ApprovedCount int64                   `json:"approved_count"`
+	PendingCount  int64                   `json:"pending_count"`
+	PendingTotal  string                  `json:"pending_total"`
+	RejectedCount int64                   `json:"rejected_count"`
+	RejectedTotal string                  `json:"rejected_total"`
 	ByMonth       []MonthlyBucketResponse `json:"by_month"`
 }
 
@@ -15,12 +21,14 @@ type MonthlyBucketResponse struct {
 }
 
 type AnalyticsResponse struct {
-	TotalApproved string                    `json:"total_approved"`
-	TotalCount    int64                     `json:"total_count"`
-	PendingCount  int64                     `json:"pending_count"`
-	ApprovedCount int64                     `json:"approved_count"`
-	RejectedCount int64                     `json:"rejected_count"`
-	Granularity   string                    `json:"granularity"`
+	TotalApproved string                     `json:"total_approved"`
+	TotalCount    int64                      `json:"total_count"`
+	PendingCount  int64                      `json:"pending_count"`
+	PendingTotal  string                     `json:"pending_total"`
+	ApprovedCount int64                      `json:"approved_count"`
+	RejectedCount int64                      `json:"rejected_count"`
+	RejectedTotal string                     `json:"rejected_total"`
+	Granularity   string                     `json:"granularity"`
 	ByProject     []AnalyticsProjectResponse `json:"by_project"`
 	ByBucket      []AnalyticsBucketResponse  `json:"by_bucket"`
 }
@@ -49,8 +57,10 @@ func AnalyticsToResp(a *expensesports.ExpenseAnalyticsResult) AnalyticsResponse 
 		TotalApproved: a.TotalApproved.String(),
 		TotalCount:    a.TotalCount,
 		PendingCount:  a.PendingCount,
+		PendingTotal:  a.PendingTotal.String(),
 		ApprovedCount: a.ApprovedCount,
 		RejectedCount: a.RejectedCount,
+		RejectedTotal: a.RejectedTotal.String(),
 		Granularity:   a.Granularity,
 		ByProject:     byProject,
 		ByBucket:      byBucket,
@@ -62,5 +72,14 @@ func SummaryToResp(s *expensesports.ProjectExpenseSummary) SummaryResponse {
 	for i, b := range s.ByMonth {
 		by[i] = MonthlyBucketResponse{Month: b.MonthYYYYMM, Total: b.Total.String()}
 	}
-	return SummaryResponse{TotalApproved: s.TotalApproved.String(), ByMonth: by}
+	return SummaryResponse{
+		TotalApproved: s.TotalApproved.String(),
+		TotalCount:    s.TotalCount,
+		ApprovedCount: s.ApprovedCount,
+		PendingCount:  s.PendingCount,
+		PendingTotal:  s.PendingTotal.String(),
+		RejectedCount: s.RejectedCount,
+		RejectedTotal: s.RejectedTotal.String(),
+		ByMonth:       by,
+	}
 }

@@ -43,11 +43,23 @@ type ExpenseAnalyticsResult struct {
 	TotalApproved decimal.Decimal
 	TotalCount    int64
 	PendingCount  int64
+	PendingTotal  decimal.Decimal
 	ApprovedCount int64
 	RejectedCount int64
+	RejectedTotal decimal.Decimal
 	ByProject     []AnalyticsProjectTotal
 	ByBucket      []AnalyticsBucketTotal
 	Granularity   string
+}
+
+type ExpensePeriodMetrics struct {
+	TotalCount    int64
+	ApprovedCount int64
+	ApprovedTotal decimal.Decimal
+	PendingCount  int64
+	PendingTotal  decimal.Decimal
+	RejectedCount int64
+	RejectedTotal decimal.Decimal
 }
 
 type AnalyticsProjectTotal struct {
@@ -62,15 +74,22 @@ type AnalyticsBucketTotal struct {
 }
 
 type ExpenseListFilter struct {
-	ProjectID string
-	Status    string
-	From      *time.Time
-	To        *time.Time
-	Query     string
+	ProjectID       string
+	OnlySubmittedBy *string
+	Status          string
+	From            *time.Time
+	To              *time.Time
+	Query           string
 }
 
 type ProjectExpenseSummary struct {
 	TotalApproved decimal.Decimal
+	TotalCount    int64
+	ApprovedCount int64
+	PendingCount  int64
+	PendingTotal  decimal.Decimal
+	RejectedCount int64
+	RejectedTotal decimal.Decimal
 	ByMonth       []MonthlyTotal
 }
 

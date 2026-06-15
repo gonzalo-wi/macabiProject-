@@ -5,15 +5,16 @@ import (
 	"log"
 
 	eventports "macabi-back/internal/event/application/ports"
+	eventservices "macabi-back/internal/event/application/services"
 )
 
 type SendEventReminders struct {
-	repo   eventports.ReminderRepository
-	mailer eventports.EventMailer
+	repo     eventports.ReminderRepository
+	notifier *eventservices.EventReminderNotifier
 }
 
-func NewSendEventReminders(repo eventports.ReminderRepository, mailer eventports.EventMailer) *SendEventReminders {
-	return &SendEventReminders{repo: repo, mailer: mailer}
+func NewSendEventReminders(repo eventports.ReminderRepository, notifier *eventservices.EventReminderNotifier) *SendEventReminders {
+	return &SendEventReminders{repo: repo, notifier: notifier}
 }
 
 func (uc *SendEventReminders) Execute(ctx context.Context) error {
@@ -35,11 +36,9 @@ func (uc *SendEventReminders) Execute(ctx context.Context) error {
 			continue
 		}
 		for _, t := range targets {
-			if err := uc.mailer.SendEventReminder(ctx, t.Email, t.Name, event.Title, *event.ResponseDeadlineAt, event.ID); err != nil {
-				log.Printf("send_event_reminders: SendEventReminder to %s: %v", t.Email, err)
-			}
+			uc.notifier.NotifyResponseReminder(ctx, t, event)
 		}
-		log.Printf("send_event_reminders: sent %d reminders for event %q (%s)", len(targets), event.Title, event.ID)
+		log.Printf("send_event_reminders: notified %d users for event %q (%s)", len(targets), event.Title, event.ID)
 	}
 	return nil
 }

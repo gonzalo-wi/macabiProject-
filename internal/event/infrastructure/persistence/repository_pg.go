@@ -19,3 +19,8 @@ var _ eventports.ModuleRepository = (*RepositoryPG)(nil)
 var _ eventports.OptionRepository = (*RepositoryPG)(nil)
 var _ eventports.ResponseRepository = (*RepositoryPG)(nil)
 var _ eventports.ReminderRepository = (*RepositoryPG)(nil)
+var _ eventports.EventNotificationRepository = (*RepositoryPG)(nil)
+
+func RunMigrations(db *gorm.DB) error {
+	return db.AutoMigrate(&EventNotificationModel{})
+}

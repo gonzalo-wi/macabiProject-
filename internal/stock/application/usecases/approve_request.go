@@ -6,7 +6,6 @@ import (
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
 	projectports "macabi-back/internal/project/application/ports"
-	userports "macabi-back/internal/user/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
@@ -19,13 +18,15 @@ type ApproveRequestInput struct {
 type ApproveRequest struct {
 	repo          stockports.StockRepository
 	projectReader projectports.ProjectMembership
-	emailReader   userports.UserEmailReader
-	mailer        stockports.StockMailer
-	pushNotifier  stockports.UserPushNotifier
+	notifier      stockports.UserNotifier
 }
 
-func NewApproveRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership, emailReader userports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *ApproveRequest {
-	return &ApproveRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer, pushNotifier: pushNotifier}
+func NewApproveRequest(
+	repo stockports.StockRepository,
+	projectReader projectports.ProjectMembership,
+	notifier stockports.UserNotifier,
+) *ApproveRequest {
+	return &ApproveRequest{repo: repo, projectReader: projectReader, notifier: notifier}
 }
 
 func (uc *ApproveRequest) Execute(ctx context.Context, input ApproveRequestInput) error {
@@ -58,13 +59,7 @@ func (uc *ApproveRequest) Execute(ctx context.Context, input ApproveRequestInput
 	if err := uc.repo.ApproveRequest(ctx, input.RequestID); err != nil {
 		return err
 	}
-	if email, err := uc.emailReader.FindEmailByID(ctx, req.RequestedByID); err == nil {
-		_ = uc.mailer.NotifyRequesterApproved(ctx, email, resource.Name, req.Quantity)
-	}
-	uc.pushNotifier.Notify(ctx, req.RequestedByID,
-		"Solicitud aprobada",
-		resource.Name+" — tu reserva fue aprobada",
-		"/stock/requests/my",
-	)
+
+	uc.notifier.NotifyRequesterApproved(ctx, input.RequestID, req.RequestedByID, resource.Name, req.Quantity)
 	return nil
 }

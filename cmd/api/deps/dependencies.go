@@ -25,13 +25,13 @@ type Dependencies struct {
 }
 
 func Build(db *gorm.DB, cfg *config.Config) *Dependencies {
+	push := buildPushNotifier(db, cfg)
+
 	authHandler, userHandler, tokenPrv := buildUserDeps(db, cfg)
 	projectHandler := buildProjectDeps(db)
-	eventHandler, sendReminders := buildEventDeps(db, cfg)
-	stockHandler, stockRepo := buildStockDeps(db, cfg)
-	// stockRepo satisfies ProjectMembership, ProjectCoordinatorReader and UserEmailReader
-	// because StockRepositoryPG implements all three interfaces.
-	expensesHandler := buildExpensesDeps(db, cfg, stockRepo, stockRepo, stockRepo)
+	eventHandler, sendReminders := buildEventDeps(db, cfg, push)
+	stockHandler, stockRepo := buildStockDeps(db, cfg, push)
+	expensesHandler := buildExpensesDeps(db, cfg, stockRepo, stockRepo, stockRepo, push)
 
 	return &Dependencies{
 		AuthHandler:        authHandler,

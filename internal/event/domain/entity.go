@@ -148,3 +148,12 @@ type ModuleResponseSummary struct {
 	Module EventModule
 	Groups []GroupSummary
 }
+
+type EventNotification struct {
+	ID              string
+	UserID          string
+	EventInstanceID string
+	Message         string
+	ReadAt          *time.Time
+	CreatedAt       time.Time
+}
