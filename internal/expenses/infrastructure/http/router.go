@@ -33,6 +33,8 @@ func RegisterRoutes(r *gin.Engine, h *Handler, tokenPrv userports.TokenProvider)
 
 		api.GET("/projects/:id/expenses/summary", h.SummaryByProject)
 		api.GET("/projects/:id/expenses", h.ListByProject)
+		api.GET("/projects/:id/expenses/budget", h.GetBudget)
+		api.PUT("/projects/:id/expenses/budget", userhttp.RequireRole(userdomain.RoleAdmin), h.SetBudget)
 
 		api.POST("/expenses/categories", userhttp.RequireRole(userdomain.RoleAdmin), h.CreateCategory)
 		api.GET("/expenses/categories", h.ListCategories)

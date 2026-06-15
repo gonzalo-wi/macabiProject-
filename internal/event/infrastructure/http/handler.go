@@ -25,6 +25,10 @@ type Handler struct {
 	getMyResponse            *eventusecases.GetMyResponse
 	listEventResponses       *eventusecases.ListEventResponses
 	getModuleResponseSummary *eventusecases.GetModuleResponseSummary
+	listNotifs               *eventusecases.ListEventNotifications
+	markNotifRead            *eventusecases.MarkEventNotificationRead
+	markAllNotifsRead        *eventusecases.MarkAllEventNotificationsRead
+	unreadNotifs             *eventusecases.UnreadEventNotificationCount
 }
 
 func NewHandler(
@@ -48,6 +52,10 @@ func NewHandler(
 	getMyResponse *eventusecases.GetMyResponse,
 	listEventResponses *eventusecases.ListEventResponses,
 	getModuleResponseSummary *eventusecases.GetModuleResponseSummary,
+	listNotifs *eventusecases.ListEventNotifications,
+	markNotifRead *eventusecases.MarkEventNotificationRead,
+	markAllNotifsRead *eventusecases.MarkAllEventNotificationsRead,
+	unreadNotifs *eventusecases.UnreadEventNotificationCount,
 ) *Handler {
 	return &Handler{
 		createEvent:              createEvent,
@@ -70,5 +78,9 @@ func NewHandler(
 		getMyResponse:            getMyResponse,
 		listEventResponses:       listEventResponses,
 		getModuleResponseSummary: getModuleResponseSummary,
+		listNotifs:               listNotifs,
+		markNotifRead:            markNotifRead,
+		markAllNotifsRead:        markAllNotifsRead,
+		unreadNotifs:             unreadNotifs,
 	}
 }

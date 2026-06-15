@@ -8,17 +8,18 @@ import (
 	expensesports "macabi-back/internal/expenses/application/ports"
 	expensesdomain "macabi-back/internal/expenses/domain"
 	projectports "macabi-back/internal/project/application/ports"
+	"macabi-back/internal/shared/notifications"
 	userports "macabi-back/internal/user/application/ports"
 )
 
-// ExpenseNotificationService handles in-app and email notifications for expense events.
-// It implements CoordinatorNotifier and SubmitterNotifier from the usecases package.
+// ExpenseNotificationService unifica campana in-app, Web Push y email para gastos.
 type ExpenseNotificationService struct {
 	notifs       expensesports.ExpenseNotificationRepository
 	coordinators projectports.ProjectCoordinatorReader
 	emails       userports.UserEmailReader
 	mailer       expensesports.ExpenseMailer
 	repo         expensesports.ExpenseRepository
+	push         notifications.PushNotifier
 }
 
 func NewExpenseNotificationService(
@@ -27,6 +28,7 @@ func NewExpenseNotificationService(
 	emails userports.UserEmailReader,
 	mailer expensesports.ExpenseMailer,
 	repo expensesports.ExpenseRepository,
+	push notifications.PushNotifier,
 ) *ExpenseNotificationService {
 	return &ExpenseNotificationService{
 		notifs:       notifs,
@@ -34,6 +36,7 @@ func NewExpenseNotificationService(
 		emails:       emails,
 		mailer:       mailer,
 		repo:         repo,
+		push:         push,
 	}
 }
 
@@ -43,8 +46,22 @@ func (s *ExpenseNotificationService) NotifyCoordinatorsNewPendingExpense(ctx con
 		return
 	}
 
+	filtered := make([]string, 0, len(coordinators))
+	for _, id := range coordinators {
+		if id != exp.SubmittedByUserID {
+			filtered = append(filtered, id)
+		}
+	}
+	if len(filtered) == 0 {
+		return
+	}
+	coordinators = filtered
+
 	amountLabel := formatAmount(exp)
 	msg := fmt.Sprintf("Nuevo gasto pendiente: %s — %s", amountLabel, exp.Description)
+	title := "Nuevo gasto pendiente"
+	body := fmt.Sprintf("%s — %s", amountLabel, exp.Description)
+	url := notifications.ExpenseDetail(exp.ID)
 
 	for _, coordinatorID := range coordinators {
 		_ = s.notifs.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
@@ -53,6 +70,7 @@ func (s *ExpenseNotificationService) NotifyCoordinatorsNewPendingExpense(ctx con
 			ProjectID: exp.ProjectID,
 			Message:   msg,
 		})
+		notifications.PushToUser(ctx, s.push, coordinatorID, title, body, url)
 	}
 
 	projectName, _ := s.repo.FindProjectName(ctx, exp.ProjectID)
@@ -70,12 +88,18 @@ func (s *ExpenseNotificationService) NotifyCoordinatorsNewPendingExpense(ctx con
 }
 
 func (s *ExpenseNotificationService) NotifySubmitterApproved(ctx context.Context, exp *expensesdomain.Expense) {
+	msg := fmt.Sprintf("Tu gasto fue aprobado: %s — %s", formatAmount(exp), exp.Description)
+	title := "Gasto aprobado"
+	body := exp.Description + " — tu gasto fue aprobado"
+	url := notifications.ExpenseDetail(exp.ID)
+
 	_ = s.notifs.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
 		UserID:    exp.SubmittedByUserID,
 		ExpenseID: exp.ID,
 		ProjectID: exp.ProjectID,
-		Message:   fmt.Sprintf("Tu gasto fue aprobado: %s — %s", formatAmount(exp), exp.Description),
+		Message:   msg,
 	})
+	notifications.PushToUser(ctx, s.push, exp.SubmittedByUserID, title, body, url)
 
 	if email, err := s.emails.FindEmailByID(ctx, exp.SubmittedByUserID); err == nil {
 		_ = s.mailer.NotifySubmitterApproved(ctx, email, formatAmount(exp), exp.Description, exp.ID)
@@ -87,12 +111,17 @@ func (s *ExpenseNotificationService) NotifySubmitterRejected(ctx context.Context
 	if reason != "" {
 		msg += fmt.Sprintf(" (motivo: %s)", reason)
 	}
+	title := "Gasto rechazado"
+	body := exp.Description + " — tu gasto fue rechazado"
+	url := notifications.ExpenseDetail(exp.ID)
+
 	_ = s.notifs.SaveNotification(ctx, &expensesdomain.ExpenseNotification{
 		UserID:    exp.SubmittedByUserID,
 		ExpenseID: exp.ID,
 		ProjectID: exp.ProjectID,
 		Message:   msg,
 	})
+	notifications.PushToUser(ctx, s.push, exp.SubmittedByUserID, title, body, url)
 
 	if email, err := s.emails.FindEmailByID(ctx, exp.SubmittedByUserID); err == nil {
 		_ = s.mailer.NotifySubmitterRejected(ctx, email, formatAmount(exp), exp.Description, reason, exp.ID)

@@ -20,5 +20,10 @@ func NewExpenseRepositoryPG(db *gorm.DB) *ExpenseRepositoryPG {
 }
 
 func RunMigrations(db *gorm.DB) error {
-	return db.AutoMigrate(&ExpenseCategoryModel{}, &ExpenseModel{}, &ExpenseNotificationModel{})
+	return db.AutoMigrate(
+		&ExpenseCategoryModel{},
+		&ExpenseModel{},
+		&ExpenseNotificationModel{},
+		&ProjectExpenseBudgetModel{},
+	)
 }

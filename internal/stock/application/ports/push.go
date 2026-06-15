@@ -1,6 +1,10 @@
 package stockports
 
-import "context"
+import (
+	"context"
+
+	"macabi-back/internal/shared/notifications"
+)
 
 type StoredPushSubscription struct {
 	ID       string
@@ -16,6 +20,5 @@ type PushSubscriptionRepository interface {
 	FindByUserID(ctx context.Context, userID string) ([]StoredPushSubscription, error)
 }
 
-type UserPushNotifier interface {
-	Notify(ctx context.Context, userID string, title, body, actionURL string)
-}
+// UserPushNotifier alias del contrato compartido de Web Push.
+type UserPushNotifier = notifications.PushNotifier

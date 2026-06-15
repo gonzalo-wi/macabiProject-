@@ -27,17 +27,39 @@ type ExpenseQueryRepository interface {
 	ListMine(ctx context.Context, userID string, params pagination.Params) (pagination.Result[expensesdomain.ExpenseListItem], error)
 	SummaryByProject(ctx context.Context, projectID string, onlySubmittedBy *string, from, to *time.Time) (*ProjectExpenseSummary, error)
 	Analytics(ctx context.Context, from, to *time.Time, granularity string) (*ExpenseAnalyticsResult, error)
+
+	GetBudget(ctx context.Context, projectID string) (*decimal.Decimal, error)
+	SetBudget(ctx context.Context, projectID string, amount *decimal.Decimal) error
+}
+
+// ProjectBudgetStatus = presupuesto mensual del proyecto + lo aprobado en el mes actual.
+type ProjectBudgetStatus struct {
+	MonthlyAmount        *decimal.Decimal // nil = sin presupuesto definido
+	CurrentMonthApproved decimal.Decimal
+	Month                string // "YYYY-MM"
 }
 
 type ExpenseAnalyticsResult struct {
 	TotalApproved decimal.Decimal
 	TotalCount    int64
 	PendingCount  int64
+	PendingTotal  decimal.Decimal
 	ApprovedCount int64
 	RejectedCount int64
+	RejectedTotal decimal.Decimal
 	ByProject     []AnalyticsProjectTotal
 	ByBucket      []AnalyticsBucketTotal
 	Granularity   string
+}
+
+type ExpensePeriodMetrics struct {
+	TotalCount    int64
+	ApprovedCount int64
+	ApprovedTotal decimal.Decimal
+	PendingCount  int64
+	PendingTotal  decimal.Decimal
+	RejectedCount int64
+	RejectedTotal decimal.Decimal
 }
 
 type AnalyticsProjectTotal struct {
@@ -52,15 +74,22 @@ type AnalyticsBucketTotal struct {
 }
 
 type ExpenseListFilter struct {
-	ProjectID string
-	Status    string
-	From      *time.Time
-	To        *time.Time
-	Query     string
+	ProjectID       string
+	OnlySubmittedBy *string
+	Status          string
+	From            *time.Time
+	To              *time.Time
+	Query           string
 }
 
 type ProjectExpenseSummary struct {
 	TotalApproved decimal.Decimal
+	TotalCount    int64
+	ApprovedCount int64
+	PendingCount  int64
+	PendingTotal  decimal.Decimal
+	RejectedCount int64
+	RejectedTotal decimal.Decimal
 	ByMonth       []MonthlyTotal
 }
 

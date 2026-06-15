@@ -13,4 +13,5 @@ var (
 	ErrEmptyTitle             = errors.New("el título no puede estar vacío")
 	ErrEventNotOpen           = errors.New("la jornada no está abierta para respuestas")
 	ErrResponseDeadlinePassed = errors.New("el plazo de respuestas ya cerró")
+	ErrNotificationNotFound   = errors.New("notificación no encontrada")
 )

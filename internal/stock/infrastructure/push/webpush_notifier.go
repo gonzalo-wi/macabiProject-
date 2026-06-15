@@ -78,7 +78,3 @@ func (n *WebPushNotifier) Notify(ctx context.Context, userID string, title, body
 		}
 	}
 }
-
-type NoOpPushNotifier struct{}
-
-func (NoOpPushNotifier) Notify(_ context.Context, _ string, _, _, _ string) {}

@@ -58,7 +58,7 @@ func (m *BrevoEventMailer) SendEventReminder(ctx context.Context, toEmail, userN
 	}
 
 	deadlineStr := deadline.Format("02/01/2006 15:04")
-	eventURL := fmt.Sprintf("%s/app/eventos/%s", m.frontendURL, eventID)
+	eventURL := fmt.Sprintf("%s/app/jornadas/%s/responder", m.frontendURL, eventID)
 
 	body := fmt.Sprintf(`
 <p style="margin:0 0 12px;font-size:15px;color:#374151;">Hola <strong>%s</strong>,</p>

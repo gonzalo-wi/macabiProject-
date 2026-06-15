@@ -33,6 +33,8 @@ type Handler struct {
 	createCategory    *expensesusecases.CreateExpenseCategory
 	listCategories    *expensesusecases.ListExpenseCategories
 	deleteCategory    *expensesusecases.DeleteExpenseCategory
+	getBudget         *expensesusecases.GetProjectBudget
+	setBudget         *expensesusecases.SetProjectBudget
 }
 
 func NewHandler(
@@ -59,6 +61,8 @@ func NewHandler(
 	createCategory *expensesusecases.CreateExpenseCategory,
 	listCategories *expensesusecases.ListExpenseCategories,
 	deleteCategory *expensesusecases.DeleteExpenseCategory,
+	getBudget *expensesusecases.GetProjectBudget,
+	setBudget *expensesusecases.SetProjectBudget,
 ) *Handler {
 	return &Handler{
 		create:            create,
@@ -84,6 +88,8 @@ func NewHandler(
 		createCategory:    createCategory,
 		listCategories:    listCategories,
 		deleteCategory:    deleteCategory,
+		getBudget:         getBudget,
+		setBudget:         setBudget,
 	}
 }
 
