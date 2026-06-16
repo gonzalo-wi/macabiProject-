@@ -2,9 +2,11 @@ package eventhttp
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	eventports "macabi-back/internal/event/application/ports"
 	eventusecases "macabi-back/internal/event/application/usecases"
 	eventdto "macabi-back/internal/event/infrastructure/http/dto"
 	sharederrors "macabi-back/internal/shared/errors"
@@ -43,7 +45,11 @@ func (h *Handler) CreateEvent(c *gin.Context) {
 
 func (h *Handler) ListEvents(c *gin.Context) {
 	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
-	res, err := h.listEvents.Execute(c.Request.Context(), params)
+	filter := eventports.EventListFilter{
+		Query:  strings.TrimSpace(c.Query("q")),
+		Status: strings.TrimSpace(c.Query("status")),
+	}
+	res, err := h.listEvents.Execute(c.Request.Context(), filter, params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return

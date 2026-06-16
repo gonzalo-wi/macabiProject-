@@ -3,11 +3,13 @@ package stockpersistence
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
 
 	"macabi-back/internal/shared/pagination"
+	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
 )
 
@@ -137,19 +139,38 @@ func (r *StockRepositoryPG) UpdateRequestStatus(ctx context.Context, id string, 
 		Update("status", string(status)).Error
 }
 
-func (r *StockRepositoryPG) ListRequests(ctx context.Context, params pagination.Params, projectID string, onlyRequestedBy *string) (pagination.Result[stockdomain.RequestDetail], error) {
-	q := r.db.WithContext(ctx).
+func applyRequestListFilter(q *gorm.DB, filter stockports.RequestListFilter) *gorm.DB {
+	if s := strings.TrimSpace(filter.Status); s != "" {
+		q = q.Where("sr.status = ?", s)
+	}
+	if s := strings.TrimSpace(filter.Query); s != "" {
+		like := "%" + strings.ToLower(s) + "%"
+		q = q.Where(
+			"(LOWER(res.name) LIKE ? OR LOWER(p.name) LIKE ? OR LOWER(u.name) LIKE ?)",
+			like, like, like,
+		)
+	}
+	return q
+}
+
+func (r *StockRepositoryPG) requestListBase(ctx context.Context) *gorm.DB {
+	return r.db.WithContext(ctx).
 		Table("stock_requests sr").
 		Select("sr.*, res.name as resource_name, res.type as resource_type, p.name as project_name, u.name as requester_name").
 		Joins("JOIN stock_resources res ON res.id = sr.resource_id").
 		Joins("JOIN projects p ON p.id = sr.project_id").
 		Joins("JOIN users u ON u.id = sr.requested_by_id")
+}
+
+func (r *StockRepositoryPG) ListRequests(ctx context.Context, filter stockports.RequestListFilter, params pagination.Params, projectID string, onlyRequestedBy *string) (pagination.Result[stockdomain.RequestDetail], error) {
+	q := r.requestListBase(ctx)
 	if projectID != "" {
 		q = q.Where("sr.project_id = ?", projectID)
 	}
 	if onlyRequestedBy != nil && *onlyRequestedBy != "" {
 		q = q.Where("sr.requested_by_id = ?", *onlyRequestedBy)
 	}
+	q = applyRequestListFilter(q, filter)
 	var total int64
 	if err := q.Session(&gorm.Session{}).Count(&total).Error; err != nil {
 		return pagination.Result[stockdomain.RequestDetail]{}, err

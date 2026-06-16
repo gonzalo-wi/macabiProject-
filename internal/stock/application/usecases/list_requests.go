@@ -24,14 +24,20 @@ type ListRequestsInput struct {
 	ProjectID string
 	UserID    string
 	UserRole  string
+	Query     string
+	Status    string
 }
 
 func (uc *ListRequests) Execute(ctx context.Context, input ListRequestsInput) (pagination.Result[stockdomain.RequestDetail], error) {
 	role := userdomain.Role(input.UserRole)
+	filter := stockports.RequestListFilter{
+		Query:  input.Query,
+		Status: input.Status,
+	}
 
 	if role == userdomain.RoleAdmin {
 		var only *string
-		return uc.repo.ListRequests(ctx, input.Params, input.ProjectID, only)
+		return uc.repo.ListRequests(ctx, filter, input.Params, input.ProjectID, only)
 	}
 
 	if input.ProjectID == "" {
@@ -51,10 +57,10 @@ func (uc *ListRequests) Execute(ctx context.Context, input ListRequestsInput) (p
 		return pagination.Result[stockdomain.RequestDetail]{}, err
 	}
 
-	var filter *string
+	var onlyBy *string
 	if !coord {
 		u := input.UserID
-		filter = &u
+		onlyBy = &u
 	}
-	return uc.repo.ListRequests(ctx, input.Params, input.ProjectID, filter)
+	return uc.repo.ListRequests(ctx, filter, input.Params, input.ProjectID, onlyBy)
 }

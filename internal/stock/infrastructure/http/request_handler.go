@@ -2,6 +2,7 @@ package stockhttp
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -38,6 +39,8 @@ func (h *Handler) ListRequests(c *gin.Context) {
 		ProjectID: c.Query("project_id"),
 		UserID:    c.GetString(userhttp.AuthUserIDKey),
 		UserRole:  c.GetString(userhttp.AuthRoleKey),
+		Query:     strings.TrimSpace(c.Query("q")),
+		Status:    strings.TrimSpace(c.Query("status")),
 	})
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))

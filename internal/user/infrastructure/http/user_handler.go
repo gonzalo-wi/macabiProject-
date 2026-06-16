@@ -2,11 +2,13 @@ package userhttp
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	sharederrors "macabi-back/internal/shared/errors"
 	"macabi-back/internal/shared/pagination"
+	userports "macabi-back/internal/user/application/ports"
 	userusecases "macabi-back/internal/user/application/usecases"
 	userdto "macabi-back/internal/user/infrastructure/http/dto"
 )
@@ -78,7 +80,8 @@ func (h *UserHandler) ChangeRole(c *gin.Context) {
 
 func (h *UserHandler) ListUsers(c *gin.Context) {
 	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
-	result, err := h.listUsersUC.Execute(c.Request.Context(), params)
+	filter := userports.UserListFilter{Query: strings.TrimSpace(c.Query("q"))}
+	result, err := h.listUsersUC.Execute(c.Request.Context(), filter, params)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
 		return

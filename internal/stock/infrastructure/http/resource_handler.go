@@ -2,11 +2,13 @@ package stockhttp
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	sharederrors "macabi-back/internal/shared/errors"
 	"macabi-back/internal/shared/pagination"
+	stockports "macabi-back/internal/stock/application/ports"
 	stockdto "macabi-back/internal/stock/infrastructure/http/dto"
 )
 
@@ -26,7 +28,8 @@ func (h *Handler) CreateResource(c *gin.Context) {
 
 func (h *Handler) ListResources(c *gin.Context) {
 	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
-	result, err := h.listResourcesUC.Execute(c.Request.Context(), params)
+	filter := stockports.ResourceListFilter{Query: strings.TrimSpace(c.Query("q"))}
+	result, err := h.listResourcesUC.Execute(c.Request.Context(), filter, params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return

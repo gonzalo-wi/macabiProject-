@@ -24,7 +24,6 @@ const (
 	ModuleAttendance ModuleType = "attendance"
 	ModuleMeal       ModuleType = "meal"
 	ModuleTransport  ModuleType = "transport"
-	ModuleMaterials  ModuleType = "materials"
 	ModuleCustom     ModuleType = "custom"
 )
 

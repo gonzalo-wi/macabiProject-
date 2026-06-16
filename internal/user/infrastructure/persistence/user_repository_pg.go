@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"macabi-back/internal/shared/database"
 	"macabi-back/internal/shared/pagination"
+	userports "macabi-back/internal/user/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 
 	"gorm.io/gorm"
@@ -92,14 +94,24 @@ func (r *UserRepositoryPG) Update(ctx context.Context, user *userdomain.User) er
 	return nil
 }
 
-func (r *UserRepositoryPG) FindAll(ctx context.Context, params pagination.Params) ([]userdomain.User, int64, error) {
+func applyUserListFilter(q *gorm.DB, filter userports.UserListFilter) *gorm.DB {
+	if s := strings.TrimSpace(filter.Query); s != "" {
+		like := "%" + strings.ToLower(s) + "%"
+		q = q.Where("(LOWER(name) LIKE ? OR LOWER(email) LIKE ?)", like, like)
+	}
+	return q
+}
+
+func (r *UserRepositoryPG) FindAll(ctx context.Context, filter userports.UserListFilter, params pagination.Params) ([]userdomain.User, int64, error) {
+	base := applyUserListFilter(r.dbx(ctx).Model(&UserModel{}), filter)
+
 	var total int64
-	if err := r.dbx(ctx).Model(&UserModel{}).Count(&total).Error; err != nil {
+	if err := base.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("count users: %w", err)
 	}
 
 	var models []UserModel
-	err := r.dbx(ctx).
+	err := applyUserListFilter(r.dbx(ctx), filter).
 		Order("created_at DESC").
 		Offset(params.Offset()).
 		Limit(params.PageSize).
