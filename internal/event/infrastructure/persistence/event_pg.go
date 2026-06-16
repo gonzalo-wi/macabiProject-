@@ -3,11 +3,13 @@ package eventpersistence
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
 
 	eventdomain "macabi-back/internal/event/domain"
+	eventports "macabi-back/internal/event/application/ports"
 	"macabi-back/internal/shared/pagination"
 )
 
@@ -118,13 +120,26 @@ func (r *RepositoryPG) FindInstanceByID(ctx context.Context, id string) (*eventd
 	return toDomainInst(&m), nil
 }
 
-func (r *RepositoryPG) ListInstances(ctx context.Context, params pagination.Params) (pagination.Result[eventdomain.EventInstance], error) {
+func applyEventListFilter(q *gorm.DB, filter eventports.EventListFilter) *gorm.DB {
+	if s := strings.TrimSpace(filter.Query); s != "" {
+		like := "%" + strings.ToLower(s) + "%"
+		q = q.Where("LOWER(title) LIKE ?", like)
+	}
+	if s := strings.TrimSpace(filter.Status); s != "" {
+		q = q.Where("status = ?", s)
+	}
+	return q
+}
+
+func (r *RepositoryPG) ListInstances(ctx context.Context, filter eventports.EventListFilter, params pagination.Params) (pagination.Result[eventdomain.EventInstance], error) {
+	base := applyEventListFilter(r.db.WithContext(ctx).Model(&EventInstanceModel{}), filter)
 	var total int64
-	if err := r.db.WithContext(ctx).Model(&EventInstanceModel{}).Count(&total).Error; err != nil {
+	if err := base.Count(&total).Error; err != nil {
 		return pagination.Result[eventdomain.EventInstance]{}, err
 	}
 	var rows []EventInstanceModel
-	if err := r.db.WithContext(ctx).Order("starts_at DESC").
+	if err := applyEventListFilter(r.db.WithContext(ctx).Model(&EventInstanceModel{}), filter).
+		Order("starts_at DESC").
 		Offset(params.Offset()).Limit(params.PageSize).Find(&rows).Error; err != nil {
 		return pagination.Result[eventdomain.EventInstance]{}, err
 	}

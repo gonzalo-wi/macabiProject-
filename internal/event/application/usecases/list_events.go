@@ -16,6 +16,6 @@ func NewListEvents(repo eventports.EventRepository) *ListEvents {
 	return &ListEvents{repo: repo}
 }
 
-func (uc *ListEvents) Execute(ctx context.Context, params pagination.Params) (pagination.Result[eventdomain.EventInstance], error) {
-	return uc.repo.ListInstances(ctx, params)
+func (uc *ListEvents) Execute(ctx context.Context, filter eventports.EventListFilter, params pagination.Params) (pagination.Result[eventdomain.EventInstance], error) {
+	return uc.repo.ListInstances(ctx, filter, params)
 }

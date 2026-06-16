@@ -16,6 +16,6 @@ func NewListProjects(repo projectports.ProjectRepository) *ListProjects {
 	return &ListProjects{repo: repo}
 }
 
-func (uc *ListProjects) Execute(ctx context.Context, params pagination.Params) (pagination.Result[projectdomain.Project], error) {
-	return uc.repo.FindAll(ctx, params)
+func (uc *ListProjects) Execute(ctx context.Context, filter projectports.ProjectListFilter, params pagination.Params) (pagination.Result[projectdomain.Project], error) {
+	return uc.repo.FindAll(ctx, filter, params)
 }

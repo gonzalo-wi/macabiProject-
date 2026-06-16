@@ -2,10 +2,12 @@ package projecthttp
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	projectdto "macabi-back/internal/project/infrastructure/http/dto"
+	projectports "macabi-back/internal/project/application/ports"
 	sharederrors "macabi-back/internal/shared/errors"
 	"macabi-back/internal/shared/pagination"
 )
@@ -26,7 +28,8 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 
 func (h *ProjectHandler) List(c *gin.Context) {
 	params := pagination.ParseParams(c.Query("page"), c.Query("page_size"))
-	result, err := h.listUC.Execute(c.Request.Context(), params)
+	filter := projectports.ProjectListFilter{Query: strings.TrimSpace(c.Query("q"))}
+	result, err := h.listUC.Execute(c.Request.Context(), filter, params)
 	if err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return

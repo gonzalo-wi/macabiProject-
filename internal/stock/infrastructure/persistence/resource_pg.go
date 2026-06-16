@@ -3,11 +3,13 @@ package stockpersistence
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
 
 	"macabi-back/internal/shared/pagination"
+	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
 )
 
@@ -48,13 +50,22 @@ func (r *StockRepositoryPG) FindResourceByID(ctx context.Context, id string) (*s
 	return toDomainResource(m), nil
 }
 
-func (r *StockRepositoryPG) FindAllResources(ctx context.Context, params pagination.Params) (pagination.Result[stockdomain.Resource], error) {
+func applyResourceListFilter(q *gorm.DB, filter stockports.ResourceListFilter) *gorm.DB {
+	if s := strings.TrimSpace(filter.Query); s != "" {
+		like := "%" + strings.ToLower(s) + "%"
+		q = q.Where("LOWER(name) LIKE ?", like)
+	}
+	return q
+}
+
+func (r *StockRepositoryPG) FindAllResources(ctx context.Context, filter stockports.ResourceListFilter, params pagination.Params) (pagination.Result[stockdomain.Resource], error) {
+	base := applyResourceListFilter(r.db.WithContext(ctx).Model(&ResourceModel{}), filter)
 	var total int64
-	if err := r.db.WithContext(ctx).Model(&ResourceModel{}).Count(&total).Error; err != nil {
+	if err := base.Count(&total).Error; err != nil {
 		return pagination.Result[stockdomain.Resource]{}, err
 	}
 	var models []ResourceModel
-	if err := r.db.WithContext(ctx).
+	if err := applyResourceListFilter(r.db.WithContext(ctx).Model(&ResourceModel{}), filter).
 		Order("name ASC").
 		Offset(params.Offset()).
 		Limit(params.PageSize).
