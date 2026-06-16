@@ -26,7 +26,7 @@ func SetupRouter(d *apideps.Dependencies) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	userhttp.RegisterRoutes(r, d.AuthHandler, d.UserHandler, d.TokenPrv)
+	userhttp.RegisterRoutes(r, d.UserHandlers, d.TokenPrv)
 	projecthttp.RegisterRoutes(r, d.ProjectHandler, d.TokenPrv)
 	eventhttp.RegisterRoutes(r, d.EventHandler, d.TokenPrv)
 	stockhttp.RegisterRoutes(r, d.StockHandler, d.TokenPrv)

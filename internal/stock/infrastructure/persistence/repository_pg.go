@@ -25,6 +25,5 @@ func RunMigrations(db *gorm.DB) error {
 		&ResourceModel{},
 		&RequestModel{},
 		&NotificationModel{},
-		&PushSubscriptionModel{},
 	)
 }

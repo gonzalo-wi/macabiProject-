@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func buildUserDeps(db *gorm.DB, cfg *config.Config) (*userhttp.AuthHandler, *userhttp.UserHandler, userports.TokenProvider) {
+func buildUserDeps(db *gorm.DB, cfg *config.Config) (*userhttp.Handlers, userports.TokenProvider) {
 	userRepo := userpersistence.NewUserRepositoryPG(db)
 	inviteRepo := userpersistence.NewUserInvitationRepositoryPG(db)
 	tokenRepo := userpersistence.NewPasswordResetTokenRepositoryPG(db)
@@ -69,11 +69,13 @@ func buildUserDeps(db *gorm.DB, cfg *config.Config) (*userhttp.AuthHandler, *use
 		setUserStatusUC,
 		updateUserUC,
 		changePasswordUC,
+	)
+	invitationHandler := userhttp.NewInvitationHandler(
 		createInvitationUC,
 		listPendingInvitationsUC,
 		resendInvitationUC,
 		revokeInvitationUC,
 	)
 
-	return authHandler, userHandler, jwtProvider
+	return userhttp.NewHandlers(authHandler, userHandler, invitationHandler), jwtProvider
 }

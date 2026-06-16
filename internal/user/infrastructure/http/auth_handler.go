@@ -1,14 +1,12 @@
 package userhttp
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
 	sharederrors "macabi-back/internal/shared/errors"
 	userusecases "macabi-back/internal/user/application/usecases"
-	userdomain "macabi-back/internal/user/domain"
 	userdto "macabi-back/internal/user/infrastructure/http/dto"
 )
 
@@ -67,13 +65,8 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-	err := h.requestPasswordUC.Execute(c.Request.Context(), req.Email)
-	if err != nil {
-		if errors.Is(err, userdomain.ErrInvalidEmail) {
-			c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
-			return
-		}
-		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
+	if err := h.requestPasswordUC.Execute(c.Request.Context(), req.Email); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": forgotPasswordSuccessMessage})

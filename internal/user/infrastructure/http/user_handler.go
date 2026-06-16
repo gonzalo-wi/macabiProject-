@@ -12,16 +12,12 @@ import (
 )
 
 type UserHandler struct {
-	getCurrentUserUC         *userusecases.GetCurrentUser
-	changeRoleUC             *userusecases.ChangeRole
-	listUsersUC              *userusecases.ListUsers
-	setUserStatusUC          *userusecases.SetUserStatus
-	updateUserUC             *userusecases.UpdateUser
-	changePasswordUC         *userusecases.ChangePassword
-	createUserInvitation     *userusecases.CreateUserInvitation
-	listPendingInvitationsUC *userusecases.ListPendingInvitations
-	resendUserInvitationUC   *userusecases.ResendUserInvitation
-	revokeUserInvitationUC   *userusecases.RevokeUserInvitation
+	getCurrentUserUC *userusecases.GetCurrentUser
+	changeRoleUC     *userusecases.ChangeRole
+	listUsersUC      *userusecases.ListUsers
+	setUserStatusUC  *userusecases.SetUserStatus
+	updateUserUC     *userusecases.UpdateUser
+	changePasswordUC *userusecases.ChangePassword
 }
 
 func NewUserHandler(
@@ -31,22 +27,14 @@ func NewUserHandler(
 	setUserStatusUC *userusecases.SetUserStatus,
 	updateUserUC *userusecases.UpdateUser,
 	changePasswordUC *userusecases.ChangePassword,
-	createUserInvitation *userusecases.CreateUserInvitation,
-	listPendingInvitationsUC *userusecases.ListPendingInvitations,
-	resendUserInvitationUC *userusecases.ResendUserInvitation,
-	revokeUserInvitationUC *userusecases.RevokeUserInvitation,
 ) *UserHandler {
 	return &UserHandler{
-		getCurrentUserUC:         getCurrentUserUC,
-		changeRoleUC:             changeRoleUC,
-		listUsersUC:              listUsersUC,
-		setUserStatusUC:          setUserStatusUC,
-		updateUserUC:             updateUserUC,
-		changePasswordUC:         changePasswordUC,
-		createUserInvitation:     createUserInvitation,
-		listPendingInvitationsUC: listPendingInvitationsUC,
-		resendUserInvitationUC:   resendUserInvitationUC,
-		revokeUserInvitationUC:   revokeUserInvitationUC,
+		getCurrentUserUC: getCurrentUserUC,
+		changeRoleUC:     changeRoleUC,
+		listUsersUC:      listUsersUC,
+		setUserStatusUC:  setUserStatusUC,
+		updateUserUC:     updateUserUC,
+		changePasswordUC: changePasswordUC,
 	}
 }
 

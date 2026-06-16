@@ -23,9 +23,6 @@ type Handler struct {
 	markNotificationReadUC     *stockusecases.MarkNotificationRead
 	markAllNotificationsReadUC *stockusecases.MarkAllNotificationsRead
 	unreadCountUC              *stockusecases.UnreadNotificationCount
-	registerPushSubUC          *stockusecases.RegisterPushSubscription
-	unregisterPushSubUC        *stockusecases.UnregisterPushSubscription
-	vapidPublicKey             string
 }
 
 func NewHandler(
@@ -47,9 +44,6 @@ func NewHandler(
 	markNotificationReadUC *stockusecases.MarkNotificationRead,
 	markAllNotificationsReadUC *stockusecases.MarkAllNotificationsRead,
 	unreadCountUC *stockusecases.UnreadNotificationCount,
-	registerPushSubUC *stockusecases.RegisterPushSubscription,
-	unregisterPushSubUC *stockusecases.UnregisterPushSubscription,
-	vapidPublicKey string,
 ) *Handler {
 	return &Handler{
 		createResourceUC:           createResourceUC,
@@ -70,8 +64,5 @@ func NewHandler(
 		markNotificationReadUC:     markNotificationReadUC,
 		markAllNotificationsReadUC: markAllNotificationsReadUC,
 		unreadCountUC:              unreadCountUC,
-		registerPushSubUC:          registerPushSubUC,
-		unregisterPushSubUC:        unregisterPushSubUC,
-		vapidPublicKey:             vapidPublicKey,
 	}
 }

@@ -21,11 +21,10 @@ type ApproveRequest struct {
 	projectReader projectports.ProjectMembership
 	emailReader   userports.UserEmailReader
 	mailer        stockports.StockMailer
-	pushNotifier  stockports.UserPushNotifier
 }
 
-func NewApproveRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership, emailReader userports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *ApproveRequest {
-	return &ApproveRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer, pushNotifier: pushNotifier}
+func NewApproveRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership, emailReader userports.UserEmailReader, mailer stockports.StockMailer) *ApproveRequest {
+	return &ApproveRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer}
 }
 
 func (uc *ApproveRequest) Execute(ctx context.Context, input ApproveRequestInput) error {
@@ -61,10 +60,5 @@ func (uc *ApproveRequest) Execute(ctx context.Context, input ApproveRequestInput
 	if email, err := uc.emailReader.FindEmailByID(ctx, req.RequestedByID); err == nil {
 		_ = uc.mailer.NotifyRequesterApproved(ctx, email, resource.Name, req.Quantity)
 	}
-	uc.pushNotifier.Notify(ctx, req.RequestedByID,
-		"Solicitud aprobada",
-		resource.Name+" — tu reserva fue aprobada",
-		"/stock/requests/my",
-	)
 	return nil
 }

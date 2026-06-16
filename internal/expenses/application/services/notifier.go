@@ -61,11 +61,7 @@ func (s *ExpenseNotificationService) NotifyCoordinatorsNewPendingExpense(ctx con
 	}
 
 	if emails, err := s.emails.FindEmailsByIDs(ctx, coordinators); err == nil {
-		addrs := make([]string, 0, len(emails))
-		for _, e := range emails {
-			addrs = append(addrs, e)
-		}
-		_ = s.mailer.NotifyCoordinatorsNewExpense(ctx, addrs, amountLabel, exp.Description, projectName, exp.ID)
+		_ = s.mailer.NotifyCoordinatorsNewExpense(ctx, emails, amountLabel, exp.Description, projectName, exp.ID)
 	}
 }
 

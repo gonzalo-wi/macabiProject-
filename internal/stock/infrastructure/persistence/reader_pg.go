@@ -41,25 +41,15 @@ func (r *StockRepositoryPG) FindEmailByID(ctx context.Context, userID string) (s
 	return email, err
 }
 
-func (r *StockRepositoryPG) FindEmailsByIDs(ctx context.Context, userIDs []string) (map[string]string, error) {
+func (r *StockRepositoryPG) FindEmailsByIDs(ctx context.Context, userIDs []string) ([]string, error) {
 	if len(userIDs) == 0 {
-		return map[string]string{}, nil
+		return nil, nil
 	}
-	var rows []struct {
-		ID    string
-		Email string
-	}
+	var emails []string
 	err := r.db.WithContext(ctx).
 		Table("users").
-		Select("id, email").
+		Select("email").
 		Where("id IN ?", userIDs).
-		Scan(&rows).Error
-	if err != nil {
-		return nil, err
-	}
-	result := make(map[string]string, len(rows))
-	for _, row := range rows {
-		result[row.ID] = row.Email
-	}
-	return result, nil
+		Pluck("email", &emails).Error
+	return emails, err
 }

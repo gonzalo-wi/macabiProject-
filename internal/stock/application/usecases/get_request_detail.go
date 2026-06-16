@@ -3,9 +3,9 @@ package stockusecases
 import (
 	"context"
 
+	projectports "macabi-back/internal/project/application/ports"
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
-	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
@@ -29,15 +29,12 @@ func (uc *GetRequestDetail) Execute(ctx context.Context, input GetRequestDetailI
 	if err != nil {
 		return nil, err
 	}
-
 	if userdomain.Role(input.UserRole) == userdomain.RoleAdmin {
 		return d, nil
 	}
-
 	if d.Request.RequestedByID == input.UserID {
 		return d, nil
 	}
-
 	ok, err := uc.projects.IsProjectCoordinator(ctx, d.Request.ProjectID, input.UserID)
 	if err != nil {
 		return nil, err
@@ -45,6 +42,5 @@ func (uc *GetRequestDetail) Execute(ctx context.Context, input GetRequestDetailI
 	if ok {
 		return d, nil
 	}
-
 	return nil, stockdomain.ErrForbidden
 }

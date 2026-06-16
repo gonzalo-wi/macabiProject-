@@ -3,9 +3,9 @@ package stockusecases
 import (
 	"context"
 
+	projectports "macabi-back/internal/project/application/ports"
 	stockports "macabi-back/internal/stock/application/ports"
 	stockdomain "macabi-back/internal/stock/domain"
-	projectports "macabi-back/internal/project/application/ports"
 	userdomain "macabi-back/internal/user/domain"
 )
 
@@ -32,7 +32,6 @@ func (uc *DeliverRequest) Execute(ctx context.Context, input DeliverRequestInput
 	if req.Status != stockdomain.RequestStatusApproved {
 		return stockdomain.ErrInvalidStatusTransition
 	}
-
 	if userdomain.Role(input.UserRole) != userdomain.RoleAdmin {
 		ok, err := uc.projectReader.IsProjectCoordinator(ctx, req.ProjectID, input.UserID)
 		if err != nil {

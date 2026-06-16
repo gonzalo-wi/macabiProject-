@@ -11,13 +11,34 @@ import (
 	userdto "macabi-back/internal/user/infrastructure/http/dto"
 )
 
-func (h *UserHandler) CreateInvitation(c *gin.Context) {
+type InvitationHandler struct {
+	createUC  *userusecases.CreateUserInvitation
+	listUC    *userusecases.ListPendingInvitations
+	resendUC  *userusecases.ResendUserInvitation
+	revokeUC  *userusecases.RevokeUserInvitation
+}
+
+func NewInvitationHandler(
+	createUC *userusecases.CreateUserInvitation,
+	listUC *userusecases.ListPendingInvitations,
+	resendUC *userusecases.ResendUserInvitation,
+	revokeUC *userusecases.RevokeUserInvitation,
+) *InvitationHandler {
+	return &InvitationHandler{
+		createUC: createUC,
+		listUC:   listUC,
+		resendUC: resendUC,
+		revokeUC: revokeUC,
+	}
+}
+
+func (h *InvitationHandler) Create(c *gin.Context) {
 	var req userdto.CreateUserInvitationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
-	if err := h.createUserInvitation.Execute(c.Request.Context(), userusecases.CreateUserInvitationInput{
+	if err := h.createUC.Execute(c.Request.Context(), userusecases.CreateUserInvitationInput{
 		Email:         req.Email,
 		Name:          req.Name,
 		RequestedRole: req.Role,
@@ -30,8 +51,8 @@ func (h *UserHandler) CreateInvitation(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Invitación enviada correctamente."})
 }
 
-func (h *UserHandler) ListPendingInvitations(c *gin.Context) {
-	list, err := h.listPendingInvitationsUC.Execute(c.Request.Context())
+func (h *InvitationHandler) ListPending(c *gin.Context) {
+	list, err := h.listUC.Execute(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, sharederrors.NewErrorResponse(err.Error()))
 		return
@@ -45,16 +66,16 @@ func (h *UserHandler) ListPendingInvitations(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
-func (h *UserHandler) ResendInvitation(c *gin.Context) {
-	if err := h.resendUserInvitationUC.Execute(c.Request.Context(), c.Param("id")); err != nil {
+func (h *InvitationHandler) Resend(c *gin.Context) {
+	if err := h.resendUC.Execute(c.Request.Context(), c.Param("id")); err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Invitación reenviada correctamente."})
 }
 
-func (h *UserHandler) RevokeInvitation(c *gin.Context) {
-	if err := h.revokeUserInvitationUC.Execute(c.Request.Context(), c.Param("id")); err != nil {
+func (h *InvitationHandler) Revoke(c *gin.Context) {
+	if err := h.revokeUC.Execute(c.Request.Context(), c.Param("id")); err != nil {
 		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
 		return
 	}

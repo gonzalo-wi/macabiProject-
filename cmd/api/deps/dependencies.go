@@ -14,8 +14,7 @@ import (
 )
 
 type Dependencies struct {
-	AuthHandler        *userhttp.AuthHandler
-	UserHandler        *userhttp.UserHandler
+	UserHandlers       *userhttp.Handlers
 	ProjectHandler     *projecthttp.ProjectHandler
 	EventHandler       *eventhttp.Handler
 	StockHandler       *stockhttp.Handler
@@ -25,7 +24,7 @@ type Dependencies struct {
 }
 
 func Build(db *gorm.DB, cfg *config.Config) *Dependencies {
-	authHandler, userHandler, tokenPrv := buildUserDeps(db, cfg)
+	userHandlers, tokenPrv := buildUserDeps(db, cfg)
 	projectHandler := buildProjectDeps(db)
 	eventHandler, sendReminders := buildEventDeps(db, cfg)
 	stockHandler, stockRepo := buildStockDeps(db, cfg)
@@ -34,8 +33,7 @@ func Build(db *gorm.DB, cfg *config.Config) *Dependencies {
 	expensesHandler := buildExpensesDeps(db, cfg, stockRepo, stockRepo, stockRepo)
 
 	return &Dependencies{
-		AuthHandler:        authHandler,
-		UserHandler:        userHandler,
+		UserHandlers:       userHandlers,
 		ProjectHandler:     projectHandler,
 		EventHandler:       eventHandler,
 		StockHandler:       stockHandler,

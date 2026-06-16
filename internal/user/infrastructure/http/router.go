@@ -7,52 +7,52 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(r *gin.Engine, authHandler *AuthHandler, userHandler *UserHandler, tokenPrv userports.TokenProvider) {
+func RegisterRoutes(r *gin.Engine, h *Handlers, tokenPrv userports.TokenProvider) {
 	auth := r.Group("/auth")
 	{
-		auth.POST("/register", authHandler.RegisterDisabled)
-		auth.POST("/login", authHandler.Login)
-		auth.POST("/forgot-password", authHandler.ForgotPassword)
-		auth.POST("/reset-password", authHandler.ConfirmPasswordReset)
-		auth.POST("/accept-invitation", authHandler.AcceptInvitation)
+		auth.POST("/register", h.Auth.RegisterDisabled)
+		auth.POST("/login", h.Auth.Login)
+		auth.POST("/forgot-password", h.Auth.ForgotPassword)
+		auth.POST("/reset-password", h.Auth.ConfirmPasswordReset)
+		auth.POST("/accept-invitation", h.Auth.AcceptInvitation)
 	}
 
 	api := r.Group("/api")
 	api.Use(AuthMiddleware(tokenPrv))
 	{
-		api.GET("/me", userHandler.Me)
-		api.PATCH("/me/password", userHandler.ChangePassword)
+		api.GET("/me", h.User.Me)
+		api.PATCH("/me/password", h.User.ChangePassword)
 		api.GET("/users/invitations",
 			RequireRole(userdomain.RoleAdmin),
-			userHandler.ListPendingInvitations,
+			h.Invitation.ListPending,
 		)
 		api.POST("/users/invitations/:id/resend",
 			RequireRole(userdomain.RoleAdmin),
-			userHandler.ResendInvitation,
+			h.Invitation.Resend,
 		)
 		api.DELETE("/users/invitations/:id",
 			RequireRole(userdomain.RoleAdmin),
-			userHandler.RevokeInvitation,
+			h.Invitation.Revoke,
 		)
 		api.POST("/users/invitations",
 			RequireRole(userdomain.RoleAdmin),
-			userHandler.CreateInvitation,
+			h.Invitation.Create,
 		)
 		api.GET("/users",
 			RequireRole(userdomain.RoleAdmin),
-			userHandler.ListUsers,
+			h.User.ListUsers,
 		)
 		api.PATCH("/users/:id/role",
 			RequireRole(userdomain.RoleAdmin),
-			userHandler.ChangeRole,
+			h.User.ChangeRole,
 		)
 		api.PATCH("/users/:id/status",
 			RequireRole(userdomain.RoleAdmin),
-			userHandler.SetStatus,
+			h.User.SetStatus,
 		)
 		api.PUT("/users/:id",
 			RequireRole(userdomain.RoleAdmin),
-			userHandler.UpdateUser,
+			h.User.UpdateUser,
 		)
 	}
 }

@@ -21,11 +21,10 @@ type RejectRequest struct {
 	projectReader projectports.ProjectMembership
 	emailReader   userports.UserEmailReader
 	mailer        stockports.StockMailer
-	pushNotifier  stockports.UserPushNotifier
 }
 
-func NewRejectRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership, emailReader userports.UserEmailReader, mailer stockports.StockMailer, pushNotifier stockports.UserPushNotifier) *RejectRequest {
-	return &RejectRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer, pushNotifier: pushNotifier}
+func NewRejectRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership, emailReader userports.UserEmailReader, mailer stockports.StockMailer) *RejectRequest {
+	return &RejectRequest{repo: repo, projectReader: projectReader, emailReader: emailReader, mailer: mailer}
 }
 
 func (uc *RejectRequest) Execute(ctx context.Context, input RejectRequestInput) error {
@@ -54,11 +53,6 @@ func (uc *RejectRequest) Execute(ctx context.Context, input RejectRequestInput) 
 		if email, err := uc.emailReader.FindEmailByID(ctx, req.RequestedByID); err == nil {
 			_ = uc.mailer.NotifyRequesterRejected(ctx, email, resource.Name, req.Quantity)
 		}
-		uc.pushNotifier.Notify(ctx, req.RequestedByID,
-			"Solicitud rechazada",
-			resource.Name+" — tu reserva fue rechazada",
-			"/stock/requests/my",
-		)
 	}
 	return nil
 }

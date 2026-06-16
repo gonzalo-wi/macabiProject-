@@ -13,6 +13,8 @@ import (
 	"macabi-back/internal/shared/email"
 )
 
+const brevoSendEmailURL = "https://api.brevo.com/v3/smtp/email"
+
 type BrevoStockMailer struct {
 	apiKey      string
 	from        string
@@ -119,7 +121,7 @@ func (m *BrevoStockMailer) send(ctx context.Context, to []brevoRecipient, subjec
 	if err != nil {
 		return fmt.Errorf("marshal brevo payload: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.brevo.com/v3/smtp/email", bytes.NewReader(raw))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, brevoSendEmailURL, bytes.NewReader(raw))
 	if err != nil {
 		return fmt.Errorf("brevo request: %w", err)
 	}
