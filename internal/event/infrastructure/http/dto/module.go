@@ -44,7 +44,7 @@ type ModuleDetailResponse struct {
 func ParseModuleType(s string) (eventdomain.ModuleType, error) {
 	switch eventdomain.ModuleType(s) {
 	case eventdomain.ModuleAttendance, eventdomain.ModuleMeal, eventdomain.ModuleTransport,
-		eventdomain.ModuleMaterials, eventdomain.ModuleCustom:
+		eventdomain.ModuleCustom:
 		return eventdomain.ModuleType(s), nil
 	default:
 		return "", eventdomain.ErrInvalidModuleType
