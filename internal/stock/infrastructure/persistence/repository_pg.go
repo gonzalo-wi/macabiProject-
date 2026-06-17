@@ -16,7 +16,9 @@ func NewStockRepositoryPG(db *gorm.DB) *StockRepositoryPG {
 	return &StockRepositoryPG{db: db}
 }
 
-var _ stockports.StockRepository = (*StockRepositoryPG)(nil)
+var _ stockports.ResourceRepository = (*StockRepositoryPG)(nil)
+var _ stockports.RequestRepository = (*StockRepositoryPG)(nil)
+var _ stockports.NotificationRepository = (*StockRepositoryPG)(nil)
 var _ projectports.ProjectMemberReader = (*StockRepositoryPG)(nil)
 var _ userports.UserEmailReader = (*StockRepositoryPG)(nil)
 

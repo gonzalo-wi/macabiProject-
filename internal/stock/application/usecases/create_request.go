@@ -42,14 +42,8 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 	if resource.AvailableStock < input.Quantity {
 		return nil, stockdomain.ErrInsufficientStock
 	}
-	if userdomain.Role(input.UserRole) != userdomain.RoleAdmin {
-		ok, err := uc.projectReader.IsProjectMember(ctx, input.ProjectID, input.RequestedByID)
-		if err != nil {
-			return nil, err
-		}
-		if !ok {
-			return nil, stockdomain.ErrForbidden
-		}
+	if err := uc.authorizeRequest(ctx, input); err != nil {
+		return nil, err
 	}
 	req, err := stockdomain.NewResourceRequest(
 		input.ProjectID,
@@ -66,16 +60,40 @@ func (uc *CreateRequest) Execute(ctx context.Context, input CreateRequestInput) 
 	if err := uc.repo.SaveRequest(ctx, req); err != nil {
 		return nil, err
 	}
-	isCoordinator, _ := uc.projectReader.IsProjectCoordinator(ctx, input.ProjectID, input.RequestedByID)
-	if isCoordinator {
-		if err := uc.repo.ApproveRequest(ctx, req.ID); err != nil {
-			return nil, err
-		}
-		req.Status = stockdomain.RequestStatusApproved
-	} else {
-		uc.notifyCoordinators(ctx, req.ID, input.ProjectID, resource.Name, input.Quantity)
+	if err := uc.approveOrNotify(ctx, req, input.ProjectID, input.RequestedByID, resource.Name, input.Quantity); err != nil {
+		return nil, err
 	}
 	return req, nil
+}
+
+func (uc *CreateRequest) authorizeRequest(ctx context.Context, input CreateRequestInput) error {
+	if userdomain.Role(input.UserRole) == userdomain.RoleAdmin {
+		return nil
+	}
+	ok, err := uc.projectReader.IsProjectMember(ctx, input.ProjectID, input.RequestedByID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return stockdomain.ErrForbidden
+	}
+	return nil
+}
+
+func (uc *CreateRequest) approveOrNotify(ctx context.Context, req *stockdomain.ResourceRequest, projectID, requestedByID, resourceName string, quantity int) error {
+	isCoordinator, err := uc.projectReader.IsProjectCoordinator(ctx, projectID, requestedByID)
+	if err != nil {
+		return err
+	}
+	if isCoordinator {
+		if err := uc.repo.ApproveRequest(ctx, req.ID); err != nil {
+			return err
+		}
+		req.Status = stockdomain.RequestStatusApproved
+		return nil
+	}
+	uc.notifyCoordinators(ctx, req.ID, projectID, resourceName, quantity)
+	return nil
 }
 
 func (uc *CreateRequest) notifyCoordinators(ctx context.Context, requestID, projectID, resourceName string, quantity int) {

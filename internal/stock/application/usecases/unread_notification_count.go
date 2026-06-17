@@ -7,10 +7,10 @@ import (
 )
 
 type UnreadNotificationCount struct {
-	repo stockports.StockRepository
+	repo stockports.NotificationRepository
 }
 
-func NewUnreadNotificationCount(repo stockports.StockRepository) *UnreadNotificationCount {
+func NewUnreadNotificationCount(repo stockports.NotificationRepository) *UnreadNotificationCount {
 	return &UnreadNotificationCount{repo: repo}
 }
 

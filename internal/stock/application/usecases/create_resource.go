@@ -14,10 +14,10 @@ type CreateResourceInput struct {
 }
 
 type CreateResource struct {
-	repo stockports.StockRepository
+	repo stockports.ResourceRepository
 }
 
-func NewCreateResource(repo stockports.StockRepository) *CreateResource {
+func NewCreateResource(repo stockports.ResourceRepository) *CreateResource {
 	return &CreateResource{repo: repo}
 }
 

@@ -9,10 +9,10 @@ import (
 )
 
 type ListResources struct {
-	repo stockports.StockRepository
+	repo stockports.ResourceRepository
 }
 
-func NewListResources(repo stockports.StockRepository) *ListResources {
+func NewListResources(repo stockports.ResourceRepository) *ListResources {
 	return &ListResources{repo: repo}
 }
 

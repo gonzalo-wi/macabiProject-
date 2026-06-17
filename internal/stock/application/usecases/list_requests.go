@@ -11,11 +11,11 @@ import (
 )
 
 type ListRequests struct {
-	repo     stockports.StockRepository
+	repo     stockports.RequestRepository
 	projects projectports.ProjectMembership
 }
 
-func NewListRequests(repo stockports.StockRepository, projects projectports.ProjectMembership) *ListRequests {
+func NewListRequests(repo stockports.RequestRepository, projects projectports.ProjectMembership) *ListRequests {
 	return &ListRequests{repo: repo, projects: projects}
 }
 

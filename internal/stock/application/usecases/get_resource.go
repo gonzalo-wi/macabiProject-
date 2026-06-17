@@ -8,10 +8,10 @@ import (
 )
 
 type GetResource struct {
-	repo stockports.StockRepository
+	repo stockports.ResourceRepository
 }
 
-func NewGetResource(repo stockports.StockRepository) *GetResource {
+func NewGetResource(repo stockports.ResourceRepository) *GetResource {
 	return &GetResource{repo: repo}
 }
 

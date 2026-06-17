@@ -16,10 +16,10 @@ type UpdateResourceInput struct {
 }
 
 type UpdateResource struct {
-	repo stockports.StockRepository
+	repo stockports.ResourceRepository
 }
 
-func NewUpdateResource(repo stockports.StockRepository) *UpdateResource {
+func NewUpdateResource(repo stockports.ResourceRepository) *UpdateResource {
 	return &UpdateResource{repo: repo}
 }
 

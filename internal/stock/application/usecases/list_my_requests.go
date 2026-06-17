@@ -9,10 +9,10 @@ import (
 )
 
 type ListMyRequests struct {
-	repo stockports.StockRepository
+	repo stockports.RequestRepository
 }
 
-func NewListMyRequests(repo stockports.StockRepository) *ListMyRequests {
+func NewListMyRequests(repo stockports.RequestRepository) *ListMyRequests {
 	return &ListMyRequests{repo: repo}
 }
 

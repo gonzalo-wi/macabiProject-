@@ -16,11 +16,11 @@ type DeliverRequestInput struct {
 }
 
 type DeliverRequest struct {
-	repo          stockports.StockRepository
+	repo          stockports.RequestRepository
 	projectReader projectports.ProjectMembership
 }
 
-func NewDeliverRequest(repo stockports.StockRepository, projectReader projectports.ProjectMembership) *DeliverRequest {
+func NewDeliverRequest(repo stockports.RequestRepository, projectReader projectports.ProjectMembership) *DeliverRequest {
 	return &DeliverRequest{repo: repo, projectReader: projectReader}
 }
 

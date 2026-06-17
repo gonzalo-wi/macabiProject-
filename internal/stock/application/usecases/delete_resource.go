@@ -8,10 +8,10 @@ import (
 )
 
 type DeleteResource struct {
-	repo stockports.StockRepository
+	repo stockports.ResourceRepository
 }
 
-func NewDeleteResource(repo stockports.StockRepository) *DeleteResource {
+func NewDeleteResource(repo stockports.ResourceRepository) *DeleteResource {
 	return &DeleteResource{repo: repo}
 }
 

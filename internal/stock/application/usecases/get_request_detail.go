@@ -10,11 +10,11 @@ import (
 )
 
 type GetRequestDetail struct {
-	repo     stockports.StockRepository
+	repo     stockports.RequestRepository
 	projects projectports.ProjectMembership
 }
 
-func NewGetRequestDetail(repo stockports.StockRepository, projects projectports.ProjectMembership) *GetRequestDetail {
+func NewGetRequestDetail(repo stockports.RequestRepository, projects projectports.ProjectMembership) *GetRequestDetail {
 	return &GetRequestDetail{repo: repo, projects: projects}
 }
 

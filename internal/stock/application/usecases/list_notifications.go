@@ -9,10 +9,10 @@ import (
 )
 
 type ListNotifications struct {
-	repo stockports.StockRepository
+	repo stockports.NotificationRepository
 }
 
-func NewListNotifications(repo stockports.StockRepository) *ListNotifications {
+func NewListNotifications(repo stockports.NotificationRepository) *ListNotifications {
 	return &ListNotifications{repo: repo}
 }
 

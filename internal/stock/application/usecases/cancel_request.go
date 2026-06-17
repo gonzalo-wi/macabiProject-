@@ -15,10 +15,10 @@ type CancelRequestInput struct {
 }
 
 type CancelRequest struct {
-	repo stockports.StockRepository
+	repo stockports.RequestRepository
 }
 
-func NewCancelRequest(repo stockports.StockRepository) *CancelRequest {
+func NewCancelRequest(repo stockports.RequestRepository) *CancelRequest {
 	return &CancelRequest{repo: repo}
 }
 
