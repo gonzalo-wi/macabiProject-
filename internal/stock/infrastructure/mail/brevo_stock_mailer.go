@@ -1,19 +1,14 @@
 package stockmail
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"macabi-back/internal/shared/email"
 )
-
-const brevoSendEmailURL = "https://api.brevo.com/v3/smtp/email"
 
 type BrevoStockMailer struct {
 	apiKey      string
@@ -31,22 +26,6 @@ func NewBrevoStockMailer(apiKey, fromEmail, frontendURL string) *BrevoStockMaile
 	}
 }
 
-type brevoSendEmailRequest struct {
-	Sender      brevoSender      `json:"sender"`
-	To          []brevoRecipient `json:"to"`
-	Subject     string           `json:"subject"`
-	HTMLContent string           `json:"htmlContent"`
-}
-
-type brevoSender struct {
-	Email string `json:"email"`
-	Name  string `json:"name,omitempty"`
-}
-
-type brevoRecipient struct {
-	Email string `json:"email"`
-}
-
 func detailsCard(resourceName string, quantity int) string {
 	return email.DetailsCard([]email.DetailRow{
 		{Label: "Recurso", Value: resourceName},
@@ -58,10 +37,10 @@ func (m *BrevoStockMailer) NotifyCoordinatorsNewRequest(ctx context.Context, coo
 	if len(coordinatorEmails) == 0 {
 		return nil
 	}
-	to := make([]brevoRecipient, 0, len(coordinatorEmails))
+	to := make([]email.BrevoRecipient, 0, len(coordinatorEmails))
 	for _, e := range coordinatorEmails {
 		if e = strings.TrimSpace(strings.ToLower(e)); e != "" {
-			to = append(to, brevoRecipient{Email: e})
+			to = append(to, email.BrevoRecipient{Email: e})
 		}
 	}
 	if len(to) == 0 {
@@ -77,7 +56,7 @@ func (m *BrevoStockMailer) NotifyCoordinatorsNewRequest(ctx context.Context, coo
 		email.CTAButton(requestURL, "Ver solicitud", "#2563eb"),
 	)
 	html := email.Layout("#2563eb", "Nueva solicitud de reserva", body)
-	return m.send(ctx, to, "Nueva solicitud de reserva — Macabi Madrijim", html)
+	return email.BrevoSend(ctx, m.client, m.apiKey, m.from, to, "Nueva solicitud de reserva — Macabi Madrijim", html)
 }
 
 func (m *BrevoStockMailer) NotifyRequesterApproved(ctx context.Context, requesterEmail, resourceName string, quantity int) error {
@@ -92,7 +71,7 @@ func (m *BrevoStockMailer) NotifyRequesterApproved(ctx context.Context, requeste
 		detailsCard(resourceName, quantity),
 	)
 	html := email.Layout("#16a34a", "Solicitud aprobada", body)
-	return m.send(ctx, []brevoRecipient{{Email: to}}, "Solicitud aprobada — Macabi Madrijim", html)
+	return email.BrevoSend(ctx, m.client, m.apiKey, m.from, []email.BrevoRecipient{{Email: to}}, "Solicitud aprobada — Macabi Madrijim", html)
 }
 
 func (m *BrevoStockMailer) NotifyRequesterRejected(ctx context.Context, requesterEmail, resourceName string, quantity int) error {
@@ -107,35 +86,5 @@ func (m *BrevoStockMailer) NotifyRequesterRejected(ctx context.Context, requeste
 		detailsCard(resourceName, quantity),
 	)
 	html := email.Layout("#dc2626", "Solicitud rechazada", body)
-	return m.send(ctx, []brevoRecipient{{Email: to}}, "Solicitud rechazada — Macabi Madrijim", html)
-}
-
-func (m *BrevoStockMailer) send(ctx context.Context, to []brevoRecipient, subject, html string) error {
-	body := brevoSendEmailRequest{
-		Sender:      brevoSender{Email: m.from, Name: email.SenderDisplayName},
-		To:          to,
-		Subject:     subject,
-		HTMLContent: html,
-	}
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return fmt.Errorf("marshal brevo payload: %w", err)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, brevoSendEmailURL, bytes.NewReader(raw))
-	if err != nil {
-		return fmt.Errorf("brevo request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("api-key", m.apiKey)
-
-	res, err := m.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("brevo http: %w", err)
-	}
-	defer res.Body.Close()
-	respBody, _ := io.ReadAll(res.Body)
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("brevo: status %d: %s", res.StatusCode, strings.TrimSpace(string(respBody)))
-	}
-	return nil
+	return email.BrevoSend(ctx, m.client, m.apiKey, m.from, []email.BrevoRecipient{{Email: to}}, "Solicitud rechazada — Macabi Madrijim", html)
 }

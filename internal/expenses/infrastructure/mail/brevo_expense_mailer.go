@@ -1,11 +1,8 @@
 package expensesmail
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -47,22 +44,6 @@ func (noopExpenseMailer) NotifySubmitterRejected(context.Context, string, string
 	return nil
 }
 
-type brevoSendEmailRequest struct {
-	Sender      brevoSender      `json:"sender"`
-	To          []brevoRecipient `json:"to"`
-	Subject     string           `json:"subject"`
-	HTMLContent string           `json:"htmlContent"`
-}
-
-type brevoSender struct {
-	Email string `json:"email"`
-	Name  string `json:"name,omitempty"`
-}
-
-type brevoRecipient struct {
-	Email string `json:"email"`
-}
-
 func (m *BrevoExpenseMailer) expenseURL(expenseID string) string {
 	return fmt.Sprintf("%s/app/gastos/%s", m.frontendURL, expenseID)
 }
@@ -71,10 +52,10 @@ func (m *BrevoExpenseMailer) NotifyCoordinatorsNewExpense(ctx context.Context, c
 	if len(coordinatorEmails) == 0 {
 		return nil
 	}
-	to := make([]brevoRecipient, 0, len(coordinatorEmails))
+	to := make([]email.BrevoRecipient, 0, len(coordinatorEmails))
 	for _, e := range coordinatorEmails {
 		if e = strings.TrimSpace(strings.ToLower(e)); e != "" {
-			to = append(to, brevoRecipient{Email: e})
+			to = append(to, email.BrevoRecipient{Email: e})
 		}
 	}
 	if len(to) == 0 {
@@ -93,7 +74,7 @@ func (m *BrevoExpenseMailer) NotifyCoordinatorsNewExpense(ctx context.Context, c
 		email.CTAButton(m.expenseURL(expenseID), "Ver gasto", "#2563eb"),
 	)
 	html := email.Layout("#2563eb", "Nuevo gasto pendiente", body)
-	return m.send(ctx, to, "Nuevo gasto pendiente — Macabi Madrijim", html)
+	return email.BrevoSend(ctx, m.client, m.apiKey, m.from, to, "Nuevo gasto pendiente — Macabi Madrijim", html)
 }
 
 func (m *BrevoExpenseMailer) NotifySubmitterApproved(ctx context.Context, submitterEmail, amount, description, expenseID string) error {
@@ -112,7 +93,7 @@ func (m *BrevoExpenseMailer) NotifySubmitterApproved(ctx context.Context, submit
 		email.CTAButton(m.expenseURL(expenseID), "Ver gasto", "#16a34a"),
 	)
 	html := email.Layout("#16a34a", "Gasto aprobado", body)
-	return m.send(ctx, []brevoRecipient{{Email: to}}, "Gasto aprobado — Macabi Madrijim", html)
+	return email.BrevoSend(ctx, m.client, m.apiKey, m.from, []email.BrevoRecipient{{Email: to}}, "Gasto aprobado — Macabi Madrijim", html)
 }
 
 func (m *BrevoExpenseMailer) NotifySubmitterRejected(ctx context.Context, submitterEmail, amount, description, reason, expenseID string) error {
@@ -136,38 +117,5 @@ func (m *BrevoExpenseMailer) NotifySubmitterRejected(ctx context.Context, submit
 		email.CTAButton(m.expenseURL(expenseID), "Ver gasto", "#dc2626"),
 	)
 	html := email.Layout("#dc2626", "Gasto rechazado", body)
-	return m.send(ctx, []brevoRecipient{{Email: to}}, "Gasto rechazado — Macabi Madrijim", html)
-}
-
-func (m *BrevoExpenseMailer) send(ctx context.Context, to []brevoRecipient, subject, htmlContent string) error {
-	if m.apiKey == "" || m.from == "" {
-		return nil
-	}
-	body := brevoSendEmailRequest{
-		Sender:      brevoSender{Email: m.from, Name: email.SenderDisplayName},
-		To:          to,
-		Subject:     subject,
-		HTMLContent: htmlContent,
-	}
-	raw, err := json.Marshal(body)
-	if err != nil {
-		return fmt.Errorf("marshal brevo payload: %w", err)
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.brevo.com/v3/smtp/email", bytes.NewReader(raw))
-	if err != nil {
-		return fmt.Errorf("brevo request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("api-key", m.apiKey)
-
-	res, err := m.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("brevo http: %w", err)
-	}
-	defer res.Body.Close()
-	respBody, _ := io.ReadAll(res.Body)
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return fmt.Errorf("brevo: status %d: %s", res.StatusCode, strings.TrimSpace(string(respBody)))
-	}
-	return nil
+	return email.BrevoSend(ctx, m.client, m.apiKey, m.from, []email.BrevoRecipient{{Email: to}}, "Gasto rechazado — Macabi Madrijim", html)
 }
