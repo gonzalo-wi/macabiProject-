@@ -50,16 +50,28 @@ func (uc *AcceptInvitation) Execute(ctx context.Context, rawToken, password stri
 			return userdomain.ErrInvalidOrExpiredInvitation
 		}
 
-		if _, err := uc.users.FindByEmail(txCtx, inv.Email); err == nil {
-			return userdomain.ErrEmailAlreadyTaken
-		} else if !errors.Is(err, userdomain.ErrUserNotFound) {
-			return err
-		}
-
 		hashed, err := uc.hasher.Hash(password)
 		if err != nil {
 			return fmt.Errorf("hash password: %w", err)
 		}
+
+		existing, err := uc.users.FindByEmail(txCtx, inv.Email)
+		if err == nil {
+			if existing.PasswordSet {
+				return userdomain.ErrEmailAlreadyTaken
+			}
+			existing.Name = inv.Name
+			existing.Role = inv.Role
+			existing.SetPassword(hashed)
+			if err := uc.users.Update(txCtx, existing); err != nil {
+				return err
+			}
+			return uc.invites.MarkUsed(txCtx, inv.ID)
+		}
+		if !errors.Is(err, userdomain.ErrUserNotFound) {
+			return err
+		}
+
 		user, err := userdomain.NewUserWithRole(inv.Name, inv.Email, hashed, inv.Role)
 		if err != nil {
 			return err

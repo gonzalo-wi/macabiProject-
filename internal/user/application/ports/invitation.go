@@ -28,6 +28,7 @@ type UserInvitationRepository interface {
 	Create(ctx context.Context, email, name string, role userdomain.Role, tokenHash string, expiresAt time.Time) error
 	FindValidByTokenHash(ctx context.Context, tokenHash string) (*UserInvitation, error)
 	FindPendingByID(ctx context.Context, id string) (*PendingUserInvitation, error)
+	FindPendingByEmail(ctx context.Context, email string) (*PendingUserInvitation, error)
 	ListPending(ctx context.Context) ([]PendingUserInvitation, error)
 	MarkUsed(ctx context.Context, id string) error
 }

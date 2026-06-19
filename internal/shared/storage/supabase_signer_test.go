@@ -1,4 +1,4 @@
-package expensesstorage
+package sharedstorage
 
 import "testing"
 

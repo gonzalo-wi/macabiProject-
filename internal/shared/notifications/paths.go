@@ -15,3 +15,7 @@ func ExpenseDetail(expenseID string) string {
 func EventRespond(eventID string) string {
 	return fmt.Sprintf("/app/jornadas/%s/responder", eventID)
 }
+
+func NewsDetail(newsID string) string {
+	return fmt.Sprintf("/app/noticias/%s", newsID)
+}

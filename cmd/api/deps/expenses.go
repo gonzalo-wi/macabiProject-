@@ -9,10 +9,10 @@ import (
 	expenseshttp "macabi-back/internal/expenses/infrastructure/http"
 	expensesmail "macabi-back/internal/expenses/infrastructure/mail"
 	expensespersistence "macabi-back/internal/expenses/infrastructure/persistence"
-	expensesstorage "macabi-back/internal/expenses/infrastructure/storage"
 	projectports "macabi-back/internal/project/application/ports"
 	"macabi-back/internal/shared/config"
 	"macabi-back/internal/shared/notifications"
+	sharedstorage "macabi-back/internal/shared/storage"
 	userports "macabi-back/internal/user/application/ports"
 
 	"gorm.io/gorm"
@@ -33,7 +33,7 @@ func buildExpensesDeps(
 
 	var receiptSigner expensesports.ReceiptSigner
 	if cfg.SupabaseURL != "" && cfg.SupabaseServiceRoleKey != "" && cfg.SupabaseExpenseReceiptBucket != "" {
-		receiptSigner = &expensesstorage.SupabaseSigner{
+		receiptSigner = &sharedstorage.SupabaseSigner{
 			BaseURL: strings.TrimSuffix(cfg.SupabaseURL, "/"),
 			APIKey:  cfg.SupabaseServiceRoleKey,
 			Bucket:  cfg.SupabaseExpenseReceiptBucket,

@@ -26,7 +26,10 @@ func httpStatus(err error) int {
 		errors.Is(err, userdomain.ErrWrongPassword):
 		return http.StatusUnauthorized
 	case errors.Is(err, userdomain.ErrForbidden),
-		errors.Is(err, userdomain.ErrUserDeactivated):
+		errors.Is(err, userdomain.ErrUserDeactivated),
+		errors.Is(err, userdomain.ErrAccountPendingActivation),
+		errors.Is(err, userdomain.ErrUserAlreadyJoined),
+		errors.Is(err, userdomain.ErrCannotDeleteSelf):
 		return http.StatusForbidden
 	default:
 		return http.StatusInternalServerError

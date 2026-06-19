@@ -10,6 +10,7 @@ import (
 	"macabi-back/internal/shared/pagination"
 	userports "macabi-back/internal/user/application/ports"
 	userusecases "macabi-back/internal/user/application/usecases"
+	userdomain "macabi-back/internal/user/domain"
 	userdto "macabi-back/internal/user/infrastructure/http/dto"
 )
 
@@ -20,6 +21,8 @@ type UserHandler struct {
 	setUserStatusUC          *userusecases.SetUserStatus
 	updateUserUC             *userusecases.UpdateUser
 	changePasswordUC         *userusecases.ChangePassword
+	createUserByAdminUC        *userusecases.CreateUserByAdmin
+	deleteUserByAdminUC        *userusecases.DeleteUserByAdmin
 	createUserInvitation     *userusecases.CreateUserInvitation
 	listPendingInvitationsUC *userusecases.ListPendingInvitations
 	resendUserInvitationUC   *userusecases.ResendUserInvitation
@@ -33,6 +36,8 @@ func NewUserHandler(
 	setUserStatusUC *userusecases.SetUserStatus,
 	updateUserUC *userusecases.UpdateUser,
 	changePasswordUC *userusecases.ChangePassword,
+	createUserByAdminUC *userusecases.CreateUserByAdmin,
+	deleteUserByAdminUC *userusecases.DeleteUserByAdmin,
 	createUserInvitation *userusecases.CreateUserInvitation,
 	listPendingInvitationsUC *userusecases.ListPendingInvitations,
 	resendUserInvitationUC *userusecases.ResendUserInvitation,
@@ -45,6 +50,8 @@ func NewUserHandler(
 		setUserStatusUC:          setUserStatusUC,
 		updateUserUC:             updateUserUC,
 		changePasswordUC:         changePasswordUC,
+		createUserByAdminUC:        createUserByAdminUC,
+		deleteUserByAdminUC:        deleteUserByAdminUC,
 		createUserInvitation:     createUserInvitation,
 		listPendingInvitationsUC: listPendingInvitationsUC,
 		resendUserInvitationUC:   resendUserInvitationUC,
@@ -94,9 +101,44 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 		Data:       make([]userdto.UserResponse, len(result.Data)),
 	}
 	for i := range result.Data {
-		response.Data[i] = userdto.ToUserResponse(&result.Data[i])
+		row := result.Data[i]
+		response.Data[i] = userdto.ToUserResponseWithInvitation(
+			&row.User,
+			row.PendingInvitationID,
+			row.InvitationStatus,
+		)
 	}
 	c.JSON(http.StatusOK, response)
+}
+
+func (h *UserHandler) CreateUser(c *gin.Context) {
+	var req userdto.CreateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	user, err := h.createUserByAdminUC.Execute(c.Request.Context(), userusecases.CreateUserByAdminInput{
+		Name:          req.Name,
+		Email:         req.Email,
+		RequestedRole: req.Role,
+		InviterRole:   userdomain.Role(c.GetString(AuthRoleKey)),
+	})
+	if err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusCreated, userdto.ToUserResponseWithInvitation(user, "", userdomain.InvitationStatus(user, false)))
+}
+
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+	if err := h.deleteUserByAdminUC.Execute(c.Request.Context(), userusecases.DeleteUserByAdminInput{
+		TargetUserID: c.Param("id"),
+		ActorUserID:  c.GetString(AuthUserIDKey),
+	}); err != nil {
+		c.JSON(httpStatus(err), sharederrors.NewErrorResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "usuario eliminado correctamente"})
 }
 
 func (h *UserHandler) SetStatus(c *gin.Context) {

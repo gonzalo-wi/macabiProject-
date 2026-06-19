@@ -17,6 +17,7 @@ type CreateUserInvitation struct {
 	users   userports.UserRepository
 	invites userports.UserInvitationRepository
 	mailer  userports.InvitationMailer
+	hasher  userports.PasswordHasher
 	baseURL string
 	ttl     time.Duration
 }
@@ -25,6 +26,7 @@ func NewCreateUserInvitation(
 	users userports.UserRepository,
 	invites userports.UserInvitationRepository,
 	mailer userports.InvitationMailer,
+	hasher userports.PasswordHasher,
 	frontendBaseURL string,
 	ttl time.Duration,
 ) *CreateUserInvitation {
@@ -32,6 +34,7 @@ func NewCreateUserInvitation(
 		users:   users,
 		invites: invites,
 		mailer:  mailer,
+		hasher:  hasher,
 		baseURL: strings.TrimRight(strings.TrimSpace(frontendBaseURL), "/"),
 		ttl:     ttl,
 	}
@@ -63,9 +66,17 @@ func (uc *CreateUserInvitation) Execute(ctx context.Context, in CreateUserInvita
 		return err
 	}
 
-	if _, err := uc.users.FindByEmail(ctx, email); err == nil {
-		return userdomain.ErrEmailAlreadyTaken
+	existing, err := uc.users.FindByEmail(ctx, email)
+	if err == nil {
+		if existing.PasswordSet {
+			return userdomain.ErrEmailAlreadyTaken
+		}
+		if err := uc.ensureDraftUser(ctx, name, email, role, existing); err != nil {
+			return err
+		}
 	} else if !errors.Is(err, userdomain.ErrUserNotFound) {
+		return err
+	} else if err := uc.createDraftUser(ctx, name, email, role); err != nil {
 		return err
 	}
 
@@ -84,6 +95,28 @@ func (uc *CreateUserInvitation) Execute(ctx context.Context, in CreateUserInvita
 
 	acceptURL := fmt.Sprintf("%s/aceptar-invitacion?token=%s", uc.baseURL, url.QueryEscape(raw))
 	return uc.mailer.SendInvitationLink(ctx, email, acceptURL)
+}
+
+func (uc *CreateUserInvitation) createDraftUser(ctx context.Context, name, email string, role userdomain.Role) error {
+	placeholder, err := generatePlaceholderPassword()
+	if err != nil {
+		return err
+	}
+	hashed, err := uc.hasher.Hash(placeholder)
+	if err != nil {
+		return fmt.Errorf("hash placeholder password: %w", err)
+	}
+	user, err := userdomain.NewDraftUser(name, email, hashed, role)
+	if err != nil {
+		return err
+	}
+	return uc.users.Save(ctx, user)
+}
+
+func (uc *CreateUserInvitation) ensureDraftUser(ctx context.Context, name, email string, role userdomain.Role, existing *userdomain.User) error {
+	existing.Name = name
+	existing.Role = role
+	return uc.users.Update(ctx, existing)
 }
 
 func resolveInvitationRole(inviter userdomain.Role, requested string) (userdomain.Role, error) {

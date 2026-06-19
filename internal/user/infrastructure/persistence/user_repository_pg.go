@@ -16,13 +16,17 @@ import (
 )
 
 type UserModel struct {
-	ID        string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	Name      string `gorm:"not null"`
-	Email     string `gorm:"uniqueIndex;not null"`
-	Password  string `gorm:"not null"`
-	Role      string `gorm:"not null;default:'user'"`
-	Active    bool   `gorm:"not null;default:true"`
-	CreatedAt time.Time
+	ID       string `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	Name     string `gorm:"not null"`
+	Email    string `gorm:"uniqueIndex;not null"`
+	Password string `gorm:"not null"`
+	Role     string `gorm:"not null;default:'user'"`
+	// No `default` tag on the bool fields below: GORM omits zero-value fields
+	// (false) from INSERT when they have a default, which made draft users get
+	// password_set=true from the DB default. The DB column still has DEFAULT true.
+	Active      bool `gorm:"not null"`
+	PasswordSet bool `gorm:"not null"`
+	CreatedAt   time.Time
 }
 
 func (UserModel) TableName() string {
@@ -82,14 +86,26 @@ func (r *UserRepositoryPG) FindByID(ctx context.Context, id string) (*userdomain
 
 func (r *UserRepositoryPG) Update(ctx context.Context, user *userdomain.User) error {
 	err := r.dbx(ctx).Model(&UserModel{}).Where("id = ?", user.ID).Updates(map[string]interface{}{
-		"name":     user.Name,
-		"email":    user.Email,
-		"role":     string(user.Role),
-		"password": user.Password,
-		"active":   user.Active,
+		"name":         user.Name,
+		"email":        user.Email,
+		"role":         string(user.Role),
+		"password":     user.Password,
+		"active":       user.Active,
+		"password_set": user.PasswordSet,
 	}).Error
 	if err != nil {
 		return fmt.Errorf("update user: %w", err)
+	}
+	return nil
+}
+
+func (r *UserRepositoryPG) Delete(ctx context.Context, id string) error {
+	res := r.dbx(ctx).Where("id = ?", id).Delete(&UserModel{})
+	if res.Error != nil {
+		return fmt.Errorf("delete user: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return userdomain.ErrUserNotFound
 	}
 	return nil
 }
@@ -127,25 +143,45 @@ func (r *UserRepositoryPG) FindAll(ctx context.Context, filter userports.UserLis
 	return users, total, nil
 }
 
+func (r *UserRepositoryPG) FindAllActiveMembers(ctx context.Context) ([]userports.Member, error) {
+	var rows []struct {
+		ID    string
+		Email string
+	}
+	if err := r.dbx(ctx).Model(&UserModel{}).
+		Where("active = ?", true).
+		Select("id", "email").
+		Scan(&rows).Error; err != nil {
+		return nil, fmt.Errorf("find all active members: %w", err)
+	}
+	out := make([]userports.Member, len(rows))
+	for i, row := range rows {
+		out[i] = userports.Member{ID: row.ID, Email: row.Email}
+	}
+	return out, nil
+}
+
 func toModel(u *userdomain.User) *UserModel {
 	return &UserModel{
-		ID:       u.ID,
-		Name:     u.Name,
-		Email:    u.Email,
-		Password: u.Password,
-		Role:     string(u.Role),
-		Active:   u.Active,
+		ID:          u.ID,
+		Name:        u.Name,
+		Email:       u.Email,
+		Password:    u.Password,
+		Role:        string(u.Role),
+		Active:      u.Active,
+		PasswordSet: u.PasswordSet,
 	}
 }
 
 func toDomain(m *UserModel) *userdomain.User {
 	return &userdomain.User{
-		ID:        m.ID,
-		Name:      m.Name,
-		Email:     m.Email,
-		Password:  m.Password,
-		Role:      userdomain.Role(m.Role),
-		Active:    m.Active,
-		CreatedAt: m.CreatedAt,
+		ID:          m.ID,
+		Name:        m.Name,
+		Email:       m.Email,
+		Password:    m.Password,
+		Role:        userdomain.Role(m.Role),
+		Active:      m.Active,
+		PasswordSet: m.PasswordSet,
+		CreatedAt:   m.CreatedAt,
 	}
 }

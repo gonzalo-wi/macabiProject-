@@ -78,6 +78,18 @@ func (r *UserInvitationRepositoryPG) FindPendingByID(ctx context.Context, id str
 	return modelToPending(&row), nil
 }
 
+func (r *UserInvitationRepositoryPG) FindPendingByEmail(ctx context.Context, email string) (*userports.PendingUserInvitation, error) {
+	var row UserInvitationModel
+	err := r.dbx(ctx).Where("email = ? AND used_at IS NULL", email).Order("created_at DESC").First(&row).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("find pending invitation by email: %w", err)
+	}
+	return modelToPending(&row), nil
+}
+
 func (r *UserInvitationRepositoryPG) ListPending(ctx context.Context) ([]userports.PendingUserInvitation, error) {
 	var rows []UserInvitationModel
 	err := r.dbx(ctx).Where("used_at IS NULL").Order("created_at DESC").Find(&rows).Error

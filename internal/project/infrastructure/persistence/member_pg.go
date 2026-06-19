@@ -57,6 +57,10 @@ func (r *ProjectRepositoryPG) RemoveMember(ctx context.Context, projectID, userI
 	return nil
 }
 
+func (r *ProjectRepositoryPG) RemoveAllMembersByUserID(ctx context.Context, userID string) error {
+	return r.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&ProjectMemberModel{}).Error
+}
+
 func toDomainMember(m ProjectMemberModel) *projectdomain.ProjectMember {
 	return &projectdomain.ProjectMember{
 		ID:        m.ID,

@@ -18,4 +18,7 @@ var (
 	ErrInvalidOrExpiredInvitation = errors.New("la invitación es inválida o expiró")
 	ErrInvitationNotFound         = errors.New("invitación no encontrada")
 	ErrPublicRegistrationDisabled = errors.New("el registro público está deshabilitado")
+	ErrUserAlreadyJoined          = errors.New("no se puede eliminar un usuario que ya ingresó al sistema")
+	ErrCannotDeleteSelf           = errors.New("no podés eliminar tu propia cuenta")
+	ErrAccountPendingActivation   = errors.New("la cuenta está pendiente de activación; revisá tu correo para completar el registro")
 )
