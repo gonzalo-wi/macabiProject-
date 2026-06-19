@@ -38,9 +38,17 @@ func RegisterRoutes(r *gin.Engine, authHandler *AuthHandler, userHandler *UserHa
 			RequireRole(userdomain.RoleAdmin),
 			userHandler.CreateInvitation,
 		)
+		api.POST("/users",
+			RequireRole(userdomain.RoleAdmin),
+			userHandler.CreateUser,
+		)
 		api.GET("/users",
 			RequireRole(userdomain.RoleAdmin),
 			userHandler.ListUsers,
+		)
+		api.DELETE("/users/:id",
+			RequireRole(userdomain.RoleAdmin),
+			userHandler.DeleteUser,
 		)
 		api.PATCH("/users/:id/role",
 			RequireRole(userdomain.RoleAdmin),

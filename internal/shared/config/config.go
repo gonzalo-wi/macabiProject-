@@ -31,6 +31,7 @@ type Config struct {
 	SupabaseURL                  string
 	SupabaseServiceRoleKey       string
 	SupabaseExpenseReceiptBucket string
+	SupabaseNewsImageBucket      string
 }
 
 func (c *Config) DSN() string {
@@ -113,6 +114,7 @@ func Load() *Config {
 		SupabaseURL:                  strings.TrimSpace(os.Getenv("SUPABASE_URL")),
 		SupabaseServiceRoleKey:       strings.TrimSpace(os.Getenv("SUPABASE_SERVICE_ROLE_KEY")),
 		SupabaseExpenseReceiptBucket: strings.TrimSpace(os.Getenv("SUPABASE_EXPENSE_RECEIPTS_BUCKET")),
+		SupabaseNewsImageBucket:      strings.TrimSpace(os.Getenv("SUPABASE_NEWS_IMAGES_BUCKET")),
 	}
 }
 

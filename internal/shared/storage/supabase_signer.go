@@ -1,4 +1,4 @@
-package expensesstorage
+package sharedstorage
 
 import (
 	"bytes"
@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+// SupabaseSigner habla con Supabase Storage (signed URLs + upload/delete directo).
+// Es genérico: cada feature lo instancia con su propio Bucket.
 type SupabaseSigner struct {
 	BaseURL string
 	APIKey  string

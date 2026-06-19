@@ -25,12 +25,15 @@ type ChangePasswordRequest struct {
 }
 
 type UserResponse struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Role      string    `json:"role"`
-	Active    bool      `json:"active"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                  string    `json:"id"`
+	Name                string    `json:"name"`
+	Email               string    `json:"email"`
+	Role                string    `json:"role"`
+	Active              bool      `json:"active"`
+	PasswordSet         bool      `json:"password_set"`
+	InvitationStatus    string    `json:"invitation_status"`
+	PendingInvitationID *string   `json:"pending_invitation_id,omitempty"`
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 type PaginatedUserResponse struct {
@@ -42,12 +45,29 @@ type PaginatedUserResponse struct {
 }
 
 func ToUserResponse(u *userdomain.User) UserResponse {
-	return UserResponse{
-		ID:        u.ID,
-		Name:      u.Name,
-		Email:     u.Email,
-		Role:      u.Role.String(),
-		Active:    u.Active,
-		CreatedAt: u.CreatedAt,
+	return ToUserResponseWithInvitation(u, "", userdomain.InvitationStatus(u, false))
+}
+
+func ToUserResponseWithInvitation(u *userdomain.User, pendingInvitationID, invitationStatus string) UserResponse {
+	var pendingID *string
+	if pendingInvitationID != "" {
+		pendingID = &pendingInvitationID
 	}
+	return UserResponse{
+		ID:                  u.ID,
+		Name:                u.Name,
+		Email:               u.Email,
+		Role:                u.Role.String(),
+		Active:              u.Active,
+		PasswordSet:         u.PasswordSet,
+		InvitationStatus:    invitationStatus,
+		PendingInvitationID: pendingID,
+		CreatedAt:           u.CreatedAt,
+	}
+}
+
+type CreateUserRequest struct {
+	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
+	Role  string `json:"role"`
 }

@@ -17,4 +17,5 @@ type UserRepository interface {
 	FindByID(ctx context.Context, id string) (*userdomain.User, error)
 	FindAll(ctx context.Context, filter UserListFilter, params pagination.Params) ([]userdomain.User, int64, error)
 	Update(ctx context.Context, user *userdomain.User) error
+	Delete(ctx context.Context, id string) error
 }

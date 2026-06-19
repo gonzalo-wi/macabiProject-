@@ -48,11 +48,15 @@ func (uc *ResendUserInvitation) Execute(ctx context.Context, invitationID string
 	if inv == nil {
 		return userdomain.ErrInvitationNotFound
 	}
-	if _, err := uc.users.FindByEmail(ctx, inv.Email); err == nil {
-		return userdomain.ErrEmailAlreadyTaken
+
+	if existing, err := uc.users.FindByEmail(ctx, inv.Email); err == nil {
+		if existing.PasswordSet {
+			return userdomain.ErrEmailAlreadyTaken
+		}
 	} else if !errors.Is(err, userdomain.ErrUserNotFound) {
 		return err
 	}
+
 	if err := uc.invites.InvalidatePendingByEmail(ctx, inv.Email); err != nil {
 		return err
 	}

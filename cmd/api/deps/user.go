@@ -3,6 +3,7 @@ package deps
 import (
 	"macabi-back/internal/shared/config"
 	"macabi-back/internal/shared/database"
+	projectpersistence "macabi-back/internal/project/infrastructure/persistence"
 	userports "macabi-back/internal/user/application/ports"
 	userusecases "macabi-back/internal/user/application/usecases"
 	userhttp "macabi-back/internal/user/infrastructure/http"
@@ -13,9 +14,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func buildUserDeps(db *gorm.DB, cfg *config.Config) (*userhttp.AuthHandler, *userhttp.UserHandler, userports.TokenProvider) {
+func buildUserDeps(db *gorm.DB, cfg *config.Config) (*userhttp.AuthHandler, *userhttp.UserHandler, userports.TokenProvider, userports.MemberDirectory) {
 	userRepo := userpersistence.NewUserRepositoryPG(db)
 	inviteRepo := userpersistence.NewUserInvitationRepositoryPG(db)
+	projectRepo := projectpersistence.NewProjectRepositoryPG(db)
+	membershipCleaner := userpersistence.NewProjectMembershipCleanerPG(projectRepo)
 	tokenRepo := userpersistence.NewPasswordResetTokenRepositoryPG(db)
 	hasher := usersecurity.NewBcryptHasher()
 	jwtProvider := usersecurity.NewJWTProvider(cfg.JWTSecret, cfg.JWTExpiration)
@@ -29,9 +32,12 @@ func buildUserDeps(db *gorm.DB, cfg *config.Config) (*userhttp.AuthHandler, *use
 		userRepo,
 		inviteRepo,
 		invitationMailer,
+		hasher,
 		cfg.FrontendPublicURL,
 		cfg.InvitationTTL,
 	)
+	createUserByAdminUC := userusecases.NewCreateUserByAdmin(userRepo, hasher)
+	deleteUserByAdminUC := userusecases.NewDeleteUserByAdmin(transactor, userRepo, inviteRepo, membershipCleaner)
 	listPendingInvitationsUC := userusecases.NewListPendingInvitations(inviteRepo, userRepo)
 	resendInvitationUC := userusecases.NewResendUserInvitation(
 		userRepo,
@@ -51,7 +57,7 @@ func buildUserDeps(db *gorm.DB, cfg *config.Config) (*userhttp.AuthHandler, *use
 	resetPasswordUC := userusecases.NewResetPassword(transactor, userRepo, tokenRepo, hasher)
 	getCurrentUserUC := userusecases.NewGetCurrentUser(userRepo)
 	changeRoleUC := userusecases.NewChangeRole(userRepo)
-	listUsersUC := userusecases.NewListUsers(userRepo)
+	listUsersUC := userusecases.NewListUsers(userRepo, inviteRepo)
 	setUserStatusUC := userusecases.NewSetUserStatus(userRepo)
 	updateUserUC := userusecases.NewUpdateUser(userRepo)
 	changePasswordUC := userusecases.NewChangePassword(userRepo, hasher)
@@ -69,11 +75,13 @@ func buildUserDeps(db *gorm.DB, cfg *config.Config) (*userhttp.AuthHandler, *use
 		setUserStatusUC,
 		updateUserUC,
 		changePasswordUC,
+		createUserByAdminUC,
+		deleteUserByAdminUC,
 		createInvitationUC,
 		listPendingInvitationsUC,
 		resendInvitationUC,
 		revokeInvitationUC,
 	)
 
-	return authHandler, userHandler, jwtProvider
+	return authHandler, userHandler, jwtProvider, userRepo
 }

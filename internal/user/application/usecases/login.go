@@ -33,6 +33,12 @@ func (uc *Login) Execute(ctx context.Context, input LoginInput) (*LoginOutput, e
 	if err != nil {
 		return nil, userdomain.ErrInvalidCredentials
 	}
+	if !user.PasswordSet {
+		return nil, userdomain.ErrAccountPendingActivation
+	}
+	if !user.Active {
+		return nil, userdomain.ErrUserDeactivated
+	}
 	if err := uc.hasher.Compare(user.Password, input.Password); err != nil {
 		return nil, userdomain.ErrInvalidCredentials
 	}

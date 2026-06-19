@@ -20,4 +20,5 @@ type ProjectRepository interface {
 	ListMembers(ctx context.Context, projectID string) ([]projectdomain.ProjectMember, error)
 	AddMember(ctx context.Context, m *projectdomain.ProjectMember) error
 	RemoveMember(ctx context.Context, projectID, userID string) error
+	RemoveAllMembersByUserID(ctx context.Context, userID string) error
 }
